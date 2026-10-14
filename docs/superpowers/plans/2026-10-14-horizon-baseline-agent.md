@@ -662,16 +662,16 @@ git commit -m "feat(horizon): add Alpaca client wrapper and market state adapter
 - Produces: `constraints.filter_candidates(candidates: list[Candidate],
 current_drawdown: Decimal, daily_loss_pct: Decimal, cfg: HorizonConfig) ->
 list[Candidate]`. Task 4 and Task 7 call this directly. `current_drawdown`
-and `daily_loss_pct` are both positive fractions of loss (never negative;
-`HorizonLedger.drawdown`/`.daily_loss_pct()` from Task 5 already produce
-values in this convention — see those methods' docstrings). On a breach the
-function always returns `[Candidate.HOLD]`, even if the input list never
-included `HOLD` — it is never empty unless the caller passes an empty
-input list with no breach. (Corrected post-Task-3-review: this line
-originally said "an empty return list is a valid, expected output," which
-contradicted the task's own code and defensive test
-`test_candidate_list_without_hold_still_returns_hold_on_breach`. See
-ledger.)
+  and `daily_loss_pct` are both positive fractions of loss (never negative;
+  `HorizonLedger.drawdown`/`.daily_loss_pct()` from Task 5 already produce
+  values in this convention — see those methods' docstrings). On a breach the
+  function always returns `[Candidate.HOLD]`, even if the input list never
+  included `HOLD` — it is never empty unless the caller passes an empty
+  input list with no breach. (Corrected post-Task-3-review: this line
+  originally said "an empty return list is a valid, expected output," which
+  contradicted the task's own code and defensive test
+  `test_candidate_list_without_hold_still_returns_hold_on_breach`. See
+  ledger.)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1762,11 +1762,16 @@ Expected: PASS (all tests from Tasks 1-7)
 Run:
 
 ```bash
-grep -rl "evo_trader.portfolio.manager\|evo_trader.evolution.engine" src/evo_trader/horizon/
+grep -rnE "^(import|from) .*(evo_trader\.portfolio\.manager|evo_trader\.evolution\.engine)" src/evo_trader/horizon/
 ```
 
 Expected: no output (no matches) — confirms no Horizon module imports either
-forbidden module.
+forbidden module. (Corrected post-Task-7: the original command matched any
+mention of either module name, including docstring prose warning against
+importing them — e.g. `ledger.py`'s and `agent.py`'s own isolation-boundary
+docstrings name both modules by name precisely to document the constraint.
+That produced a false-positive "failure" on a verbatim run. The anchored
+`^(import|from)` form only matches real import statements. See ledger.)
 
 - [ ] **Step 7: Commit**
 
