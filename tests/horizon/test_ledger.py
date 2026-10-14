@@ -3,6 +3,8 @@ independent of PortfolioManager. Mirrors PortfolioManager's drawdown formula
 ((high_water_mark - nav) / high_water_mark) but as Horizon's own instance."""
 from decimal import Decimal
 
+import pytest
+
 from evo_trader.horizon.ledger import HorizonLedger
 
 
@@ -67,8 +69,12 @@ class TestDailyLossPct:
         assert pct == Decimal("0")
 
 
-class TestZeroCapitalEdgeCase:
-    def test_drawdown_with_zero_high_water_mark_is_zero_not_divide_error(self):
-        # Defensive: starting_capital=0 would otherwise divide by zero.
-        ledger = HorizonLedger(starting_capital=Decimal("0"))
-        assert ledger.drawdown == Decimal("0")
+class TestStartingCapitalValidation:
+    def test_rejects_zero_starting_capital(self):
+        # A zero or negative starting value would let risk gates fail open.
+        with pytest.raises(ValueError, match="starting_capital"):
+            HorizonLedger(starting_capital=Decimal("0"))
+
+    def test_rejects_negative_starting_capital(self):
+        with pytest.raises(ValueError, match="starting_capital"):
+            HorizonLedger(starting_capital=Decimal("-100"))

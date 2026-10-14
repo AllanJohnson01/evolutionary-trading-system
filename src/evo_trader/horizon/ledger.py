@@ -10,10 +10,23 @@ from decimal import Decimal
 
 class HorizonLedger:
     def __init__(self, starting_capital: Decimal) -> None:
+        if starting_capital <= 0:
+            raise ValueError(
+                f"starting_capital must be positive, got {starting_capital}"
+            )
         self._nav: Decimal = starting_capital
         self._high_water_mark: Decimal = starting_capital
 
     def record_fill(self, realized: Decimal, unrealized: Decimal) -> None:
+        """Applies a fill's P&L to NAV and updates the high-water mark.
+
+        NAV moves only on ``realized``, matching the realized-only NAV
+        convention of the existing ``PortfolioManager.record_pnl``.
+        ``unrealized`` is accepted for interface symmetry with that method but
+        currently has no effect on NAV. This is asymmetric with
+        ``daily_loss_pct``, which does include unrealized P&L, via its own
+        separate parameters rather than through this method.
+        """
         self._nav += realized
         if self._nav > self._high_water_mark:
             self._high_water_mark = self._nav
