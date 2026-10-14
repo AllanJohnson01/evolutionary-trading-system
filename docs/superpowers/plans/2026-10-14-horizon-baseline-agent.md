@@ -60,6 +60,7 @@ Task 1).
 "set at build time" / "Allan's call" — picking concrete values here per the
 writing-plans no-placeholder rule; override via `HorizonConfig` if these aren't
 what Allan wants):
+
 - `tuning_cadence_bars = 20` (tune roughly every 20 bars — frequent enough for
   a fast feedback loop, infrequent enough that each tuning decision has more
   than one bar's evidence behind it).
@@ -91,8 +92,8 @@ what Allan wants):
    data. (Covered in Task 6's tuner tests.)
 4. **`execution_mode` flips from `"paper"` to `"live"` mid-run** — any
    adjustment already in flight when the flag flips must resolve under the
-   mode active when it's *applied*, not the mode active when it was
-   *proposed*, so a paper-mode proposal can't sneak through unapproved after
+   mode active when it's _applied_, not the mode active when it was
+   _proposed_, so a paper-mode proposal can't sneak through unapproved after
    the flag changes. (Covered in Task 6's gate tests.)
 5. **Hard constraint removes every candidate** (e.g., drawdown kill-switch
    active) — the decision loop must have a defined action (e.g., forced
@@ -133,6 +134,7 @@ tests/horizon/
 ### Task 1: `HorizonConfig`
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/__init__.py`
 - Create: `src/evo_trader/horizon/config.py`
 - Test: `tests/horizon/__init__.py`
@@ -140,6 +142,7 @@ tests/horizon/
 - Modify: `pyproject.toml` (add `alpaca-py` dependency)
 
 **Interfaces:**
+
 - Consumes: nothing (first task).
 - Produces: `HorizonConfig` dataclass with fields `tau: int`, `t_c: Decimal`,
   `tuning_cadence_bars: int`, `execution_mode: str`,
@@ -297,12 +300,14 @@ git commit -m "feat(horizon): add HorizonConfig and alpaca-py dependency"
 ### Task 2: Alpaca client wrapper + market state adapter
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/alpaca_client.py`
 - Create: `src/evo_trader/horizon/market_state.py`
 - Test: `tests/horizon/test_alpaca_client.py`
 - Test: `tests/horizon/test_market_state.py`
 
 **Interfaces:**
+
 - Consumes: nothing new (independent of Task 1's `HorizonConfig` at this layer
   — config values are passed in by the caller in Task 7).
 - Produces:
@@ -312,15 +317,18 @@ git commit -m "feat(horizon): add HorizonConfig and alpaca-py dependency"
     both raising `AlpacaClientError` (defined in this module) on any
     request failure — never a bare SDK exception leaking out.
   - `market_state.Bar` dataclass: `timestamp: str, open: Decimal, high: Decimal,
-    low: Decimal, close: Decimal, volume: Decimal`.
+low: Decimal, close: Decimal, volume: Decimal`.
   - `market_state.Candidate` enum: `ENTER_LONG, ENTER_SHORT, EXIT, RESIZE, HOLD,
-    HEDGE`.
+HEDGE`.
   - `market_state.build_candidates(has_open_position: bool) -> list[Candidate]`
     — pure function, no network call; Task 4 calls this directly.
   - `market_state.MarketState` dataclass: `symbol: str, bars: list[Bar],
-    has_open_position: bool, position_notional: Decimal`.
+has_open_position: bool, position_notional: Decimal`.
   - `market_state.fetch_market_state(client: AlpacaPaperClient, symbol: str,
-    lookback_bars: int) -> MarketState`.
+lookback_bars: int, has_open_position: bool, position_notional: Decimal) ->
+MarketState`. (Corrected post-Task-2: this line originally omitted
+    `has_open_position`/`position_notional`; the task's own test code and Task 7's
+    call site both always used the 5-argument form. See ledger.)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -643,16 +651,27 @@ git commit -m "feat(horizon): add Alpaca client wrapper and market state adapter
 ### Task 3: Hard constraint filter
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/constraints.py`
 - Test: `tests/horizon/test_constraints.py`
 
 **Interfaces:**
+
 - Consumes: `evo_trader.horizon.config.HorizonConfig` (Task 1);
   `evo_trader.horizon.market_state.Candidate` (Task 2).
 - Produces: `constraints.filter_candidates(candidates: list[Candidate],
-  current_drawdown: Decimal, daily_loss_pct: Decimal, cfg: HorizonConfig) ->
-  list[Candidate]`. Task 4 and Task 7 call this directly. An empty return list
-  is a valid, expected output (caller must handle it — see Task 4).
+current_drawdown: Decimal, daily_loss_pct: Decimal, cfg: HorizonConfig) ->
+list[Candidate]`. Task 4 and Task 7 call this directly. `current_drawdown`
+and `daily_loss_pct` are both positive fractions of loss (never negative;
+`HorizonLedger.drawdown`/`.daily_loss_pct()` from Task 5 already produce
+values in this convention — see those methods' docstrings). On a breach the
+function always returns `[Candidate.HOLD]`, even if the input list never
+included `HOLD` — it is never empty unless the caller passes an empty
+input list with no breach. (Corrected post-Task-3-review: this line
+originally said "an empty return list is a valid, expected output," which
+contradicted the task's own code and defensive test
+`test_candidate_list_without_hold_still_returns_hold_on_breach`. See
+ledger.)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -784,19 +803,21 @@ git commit -m "feat(horizon): add hard constraint filter"
 ### Task 4: Rollout scoring (causal-entropic-optionality, Mode B)
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/rollout.py`
 - Test: `tests/horizon/test_rollout.py`
 
 **Interfaces:**
+
 - Consumes: `Candidate` (Task 2); `MarketState`, `Bar` (Task 2); `HorizonConfig`
   (Task 1).
 - Produces: `rollout.RolloutBranch` dataclass (`end_bar: Bar,
-  reachable_candidates: list[Candidate]`); `rollout.ScoredCandidate` dataclass
+reachable_candidates: list[Candidate]`); `rollout.ScoredCandidate` dataclass
   (`candidate: Candidate, branches: list[RolloutBranch], diversity_score: int`);
   `rollout.score_candidates(candidates: list[Candidate], state: MarketState,
-  tau: int, branch_generator: Callable[[Candidate, MarketState, int],
-  list[RolloutBranch]]) -> list[ScoredCandidate]`; `rollout.pick_best(scored:
-  list[ScoredCandidate]) -> Candidate`. `branch_generator` is injected so tests
+tau: int, branch_generator: Callable[[Candidate, MarketState, int],
+list[RolloutBranch]]) -> list[ScoredCandidate]`; `rollout.pick_best(scored:
+list[ScoredCandidate]) -> Candidate`. `branch_generator` is injected so tests
   don't depend on a real LLM call — Task 7 supplies the production
   implementation that actually invokes the skill's Mode B procedure.
 
@@ -989,17 +1010,19 @@ git commit -m "feat(horizon): add rollout scoring (causal-entropic-optionality, 
 ### Task 5: Horizon ledger
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/ledger.py`
 - Test: `tests/horizon/test_ledger.py`
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks (standalone by design — must never
   import `evo_trader.portfolio.manager`).
 - Produces: `ledger.HorizonLedger` class with `__init__(self, starting_capital:
-  Decimal)`, `record_fill(self, realized: Decimal, unrealized: Decimal) ->
-  None`, and properties `nav: Decimal`, `drawdown: Decimal`,
+Decimal)`, `record_fill(self, realized: Decimal, unrealized: Decimal) ->
+None`, and properties `nav: Decimal`, `drawdown: Decimal`,
   `daily_loss_pct(self, today_realized: Decimal, today_unrealized: Decimal,
-  starting_capital: Decimal) -> Decimal`. Task 7 reads `.nav` and `.drawdown`
+starting_capital: Decimal) -> Decimal`. Task 7 reads `.nav` and `.drawdown`
   each bar to feed Task 3's `filter_candidates`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1154,22 +1177,24 @@ git commit -m "feat(horizon): add standalone HorizonLedger"
 ### Task 6: Jev tuner + execution_mode gate
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/tuner.py`
 - Test: `tests/horizon/test_tuner.py`
 
 **Interfaces:**
+
 - Consumes: `HorizonConfig` (Task 1).
 - Produces: `tuner.TuningDecision` dataclass (`proposed_tau: int,
-  proposed_t_c: Decimal, applied: bool, reason: str`); `tuner.RolloutRecord`
+proposed_t_c: Decimal, applied: bool, reason: str`); `tuner.RolloutRecord`
   dataclass (`candidate_diversity_scores: list[int], price_stayed_in_branch:
-  bool`) — one per decision, accumulated by the caller (Task 7) and passed in
+bool`) — one per decision, accumulated by the caller (Task 7) and passed in
   as the evidence window; `tuner.JevTuner` class with
   `propose(self, cfg: HorizonConfig, evidence: list[RolloutRecord]) ->
-  TuningDecision | None` (returns `None` if `len(evidence) <
-  MIN_EVIDENCE_WINDOW`) and `tuner.TuningLog` class (append-only JSONL,
+TuningDecision | None` (returns `None` if `len(evidence) <
+MIN_EVIDENCE_WINDOW`) and `tuner.TuningLog` class (append-only JSONL,
   mirroring `evo_trader.evolution.transaction_log.EvolutionLog`'s pattern)
   with `record(self, decision: TuningDecision, before_tau: int,
-  before_t_c: Decimal) -> None`.
+before_t_c: Decimal) -> None`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1422,14 +1447,16 @@ git commit -m "feat(horizon): add Jev tuner with execution_mode gate"
 ### Task 7: `HorizonAgent` — wire everything into one decision-loop entry point
 
 **Files:**
+
 - Create: `src/evo_trader/horizon/agent.py`
 - Test: `tests/horizon/test_agent.py`
 - Modify: `src/evo_trader/horizon/__init__.py` (export `HorizonAgent`)
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 1-6 — `HorizonConfig`; `AlpacaPaperClient`,
   `AlpacaClientError`; `fetch_market_state`, `build_candidates`; `
-  filter_candidates`; `score_candidates`, `pick_best`; `HorizonLedger`;
+filter_candidates`; `score_candidates`, `pick_best`; `HorizonLedger`;
   `JevTuner`, `RolloutRecord`, `TuningLog`.
 - Produces: `agent.HorizonAgent` class — the only public entry point external
   callers (a future runner script, not built in this plan) use.
@@ -1733,9 +1760,11 @@ Expected: PASS (all tests from Tasks 1-7)
 - [ ] **Step 6: Verify the isolation constraint holds**
 
 Run:
+
 ```bash
 grep -rl "evo_trader.portfolio.manager\|evo_trader.evolution.engine" src/evo_trader/horizon/
 ```
+
 Expected: no output (no matches) — confirms no Horizon module imports either
 forbidden module.
 
@@ -1764,6 +1793,6 @@ git commit -m "feat(horizon): wire HorizonAgent end-to-end"
   spec's open items, deferred until those other agents exist.
 - Go-live criteria and the live-mode human-approval UI/workflow itself (how
   Allan actually reviews and approves an escalated `TuningDecision`) — the
-  gate's *behavior* (never auto-apply in live mode) is built and tested here;
-  the *approval mechanism* (where that escalation surfaces, e.g., a Multica
+  gate's _behavior_ (never auto-apply in live mode) is built and tested here;
+  the _approval mechanism_ (where that escalation surfaces, e.g., a Multica
   issue) is undesigned and explicitly not part of this plan.
