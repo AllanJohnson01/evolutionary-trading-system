@@ -646,7 +646,14 @@ def _main() -> None:
         )
         sys.exit(1)
 
+    from evo_trader.config.parameters import CapitalConfig
+    from evo_trader.tactical.population import (
+        init_population,
+        register_starting_strategies,
+    )
+
     portfolio_manager = PortfolioManager()
+    agents = init_population(portfolio_manager, CapitalConfig())
     posture_store = PostureStore()
     log_path = Path(args.log_path)
 
@@ -663,6 +670,7 @@ def _main() -> None:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
 
+    register_starting_strategies(runner, agents, os.getenv("TACTICAL_SYMBOL", "SPY"))
     runner.run_once()
     print("Tactical cycle complete.")
 
