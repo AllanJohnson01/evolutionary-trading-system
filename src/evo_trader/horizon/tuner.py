@@ -1,10 +1,16 @@
 """
-Jev-style tau/t_c tuner, per Jev_First_Standard's "trading system: regime
+Jev-style tau tuner, per Jev_First_Standard's "trading system: regime
 classification, signal-quality scoring" lane. The execution_mode gate is the
 one hard rule in this module: "live" mode NEVER auto-applies, regardless of
 evidence size or proposed delta — matching the doctrine's "never as trade
 execution authorization... the human gate stays" clause at the point it
 actually matters (real capital).
+
+t_c exists in HorizonConfig and is the right design, but is NOT tuned here
+yet. score_candidates/pick_best in rollout.py are pure branch-count diversity
+with no competing objective — there is nothing for t_c to weight against. The
+tuner only adjusts tau until the real Mode B rollout generator replaces the
+placeholder and gives t_c a meaningful second axis to balance.
 """
 from __future__ import annotations
 
@@ -40,7 +46,6 @@ class RolloutRecord:
 @dataclass(frozen=True)
 class TuningDecision:
     proposed_tau: int
-    proposed_t_c: Decimal
     applied: bool
     reason: str
     miss_rate: Decimal
@@ -55,9 +60,7 @@ class JevTuner:
         if len(evidence) < MIN_EVIDENCE_WINDOW:
             return None
 
-        proposed_tau, proposed_t_c, miss_rate, avg_diversity = self._score_evidence(
-            cfg, evidence
-        )
+        proposed_tau, miss_rate, avg_diversity = self._score_evidence(cfg, evidence)
 
         # No-op proposals never surface as a decision, in either mode: in
         # live mode, escalating nothing-to-approve every cycle degrades the
@@ -65,13 +68,12 @@ class JevTuner:
         # repeatedly stops reading); in paper mode it's just log clutter.
         # This mirrors the cold-start "nothing to act on" signal — Task 7
         # already skips the cycle on `None`.
-        if proposed_tau == cfg.tau and proposed_t_c == cfg.t_c:
+        if proposed_tau == cfg.tau:
             return None
 
         if cfg.execution_mode == "paper":
             return TuningDecision(
                 proposed_tau=proposed_tau,
-                proposed_t_c=proposed_t_c,
                 applied=True,
                 reason="paper mode: auto-applied, unbounded per Allan's explicit decision",
                 miss_rate=miss_rate,
@@ -83,7 +85,6 @@ class JevTuner:
         # rejects any other value) — always escalate, no exceptions.
         return TuningDecision(
             proposed_tau=proposed_tau,
-            proposed_t_c=proposed_t_c,
             applied=False,
             reason="live mode: requires human approval before applying",
             miss_rate=miss_rate,
@@ -93,19 +94,21 @@ class JevTuner:
 
     def _score_evidence(
         self, cfg: HorizonConfig, evidence: Sequence[RolloutRecord]
-    ) -> tuple[int, Decimal, Decimal, Decimal]:
+    ) -> tuple[int, Decimal, Decimal]:
         """Minimal rollout-quality scoring: if branches consistently missed
         where price actually went, shorten tau (rollouts are stale faster
-        than assumed); if diversity scores are consistently low, raise t_c
-        slightly (optionality isn't dominating the pick enough to matter).
-        This is intentionally simple for v1 — refining the scoring heuristic
-        is expected future work, not something this task blocks on.
+        than assumed).
 
-        Returns (proposed_tau, proposed_t_c, miss_rate, avg_diversity) — the
-        two computed evidence metrics are returned alongside the proposal so
-        callers can persist the reasoning behind a decision, not just its
-        outcome (required for a human to reconstruct the trajectory at the
-        live go/no-go gate)."""
+        t_c is intentionally not tuned here. score_candidates/pick_best in
+        rollout.py are pure branch-count diversity — there is no competing
+        objective for t_c to weight against until the real Mode B rollout
+        generator replaces the placeholder.
+
+        Returns (proposed_tau, miss_rate, avg_diversity) — the two computed
+        evidence metrics are returned alongside the proposal so callers can
+        persist the reasoning behind a decision, not just its outcome
+        (required for a human to reconstruct the trajectory at the live
+        go/no-go gate)."""
         miss_rate = Decimal(1) - (
             Decimal(sum(1 for r in evidence if r.price_stayed_in_branch))
             / Decimal(len(evidence))
@@ -122,31 +125,23 @@ class JevTuner:
         if miss_rate > Decimal("0.3"):
             proposed_tau = max(1, cfg.tau - 1)
 
-        proposed_t_c = cfg.t_c
-        if avg_diversity < Decimal("1.5"):
-            proposed_t_c = cfg.t_c + Decimal("0.1")
-
-        return proposed_tau, proposed_t_c, miss_rate, avg_diversity
+        return proposed_tau, miss_rate, avg_diversity
 
 
 class TuningLog:
     """Append-only JSONL log — mirrors evo_trader.evolution.transaction_log.
     EvolutionLog's pattern. Every proposed/applied decision lands here
     regardless of execution_mode, so a human reviewing before go-live can
-    reconstruct the full tau/t_c trajectory."""
+    reconstruct the full tau trajectory."""
 
     def __init__(self, log_path: Path | str) -> None:
         self._path = Path(log_path)
 
-    def record(
-        self, decision: TuningDecision, before_tau: int, before_t_c: Decimal
-    ) -> None:
+    def record(self, decision: TuningDecision, before_tau: int) -> None:
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "before_tau": before_tau,
-            "before_t_c": str(before_t_c),
             "proposed_tau": decision.proposed_tau,
-            "proposed_t_c": str(decision.proposed_t_c),
             "applied": decision.applied,
             "reason": decision.reason,
             "miss_rate": str(decision.miss_rate),
@@ -156,7 +151,6 @@ class TuningLog:
         with self._path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
         logger.info(
-            "Tuning decision: applied=%s tau %s->%s t_c %s->%s",
+            "Tuning decision: applied=%s tau %s->%s",
             decision.applied, before_tau, decision.proposed_tau,
-            before_t_c, decision.proposed_t_c,
         )

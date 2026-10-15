@@ -1,6 +1,9 @@
-"""Tests for the Jev-style tuner and execution_mode gate. Paper mode applies
+"""Tests for the Jev-style tau tuner and execution_mode gate. Paper mode applies
 unbounded; live mode always escalates regardless of delta size. Cold start
-(too little evidence) declines to propose rather than guessing."""
+(too little evidence) declines to propose rather than guessing.
+
+t_c is NOT tuned — score_candidates/pick_best in rollout.py have no competing
+objective for t_c to weight against until the real Mode B rollout lands."""
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -20,7 +23,7 @@ from evo_trader.horizon.tuner import (
 def _good_evidence(n: int) -> list[RolloutRecord]:
     """Evidence that matches a default HorizonConfig exactly: 0% miss rate,
     avg diversity 2.0 (>= 1.5) — produces a no-op proposal (no change from
-    cfg.tau / cfg.t_c)."""
+    cfg.tau)."""
     return [
         RolloutRecord(candidate_diversity_scores=[3, 1, 2], price_stayed_in_branch=True)
         for _ in range(n)
@@ -28,10 +31,9 @@ def _good_evidence(n: int) -> list[RolloutRecord]:
 
 
 def _bad_evidence(n: int) -> list[RolloutRecord]:
-    """Evidence that actually triggers both scoring branches: mostly missed
-    branches (miss_rate > 0.3) and low diversity scores (avg_diversity <
-    1.5) — against a default HorizonConfig this proposes a real, non-zero
-    (tau, t_c) delta, not a no-op."""
+    """Evidence that triggers the tau scoring branch: mostly missed branches
+    (miss_rate > 0.3) — against a default HorizonConfig this proposes a
+    real, non-zero tau delta, not a no-op."""
     missed = [
         RolloutRecord(candidate_diversity_scores=[1, 1, 1], price_stayed_in_branch=False)
         for _ in range(n)
@@ -55,10 +57,10 @@ class TestColdStart:
 
 class TestNoOpProposalReturnsNone:
     """Design decision: when the computed proposal exactly matches the
-    current cfg.tau/cfg.t_c, propose() must return None — the same
-    "nothing to act on" signal as cold-start — in both modes. Escalating a
-    no-op in live mode every cycle degrades the human gate's signal value;
-    in paper mode it's just log clutter."""
+    current cfg.tau, propose() must return None — the same "nothing to act
+    on" signal as cold-start — in both modes. Escalating a no-op in live
+    mode every cycle degrades the human gate's signal value; in paper mode
+    it's just log clutter."""
 
     def test_unchanged_proposal_returns_none_in_paper_mode(self):
         tuner = JevTuner()
@@ -90,8 +92,8 @@ class TestLiveModeAlwaysEscalates:
         decision = tuner.propose(cfg, evidence=evidence)
 
         assert decision is not None
-        # Prove this is a real, non-zero delta — not a no-op escalation.
-        assert decision.proposed_tau != cfg.tau or decision.proposed_t_c != cfg.t_c
+        # Prove this is a real, non-zero tau delta — not a no-op escalation.
+        assert decision.proposed_tau != cfg.tau
         assert decision.applied is False
         assert "approval" in decision.reason.lower()
 
@@ -106,7 +108,7 @@ class TestLiveModeAlwaysEscalates:
         decision = tuner.propose(cfg, evidence=evidence)
 
         assert decision is not None
-        assert decision.proposed_tau != cfg.tau or decision.proposed_t_c != cfg.t_c
+        assert decision.proposed_tau != cfg.tau
         assert decision.applied is False
 
 
@@ -115,13 +117,13 @@ class TestTuningLog:
         log_path = tmp_path / "tuning_log.jsonl"
         log = TuningLog(log_path)
         decision = TuningDecision(
-            proposed_tau=12, proposed_t_c=Decimal("1.1"),
+            proposed_tau=12,
             applied=True, reason="paper mode: auto-applied",
             miss_rate=Decimal("0.4"), avg_diversity=Decimal("1.0"),
             evidence_count=5,
         )
 
-        log.record(decision, before_tau=10, before_t_c=Decimal("1.0"))
+        log.record(decision, before_tau=10)
 
         lines = log_path.read_text().strip().splitlines()
         assert len(lines) == 1
@@ -136,14 +138,14 @@ class TestTuningLog:
     def test_record_is_append_only_across_instances(self, tmp_path: Path):
         log_path = tmp_path / "tuning_log.jsonl"
         decision = TuningDecision(
-            proposed_tau=11, proposed_t_c=Decimal("1.0"),
+            proposed_tau=11,
             applied=False, reason="live mode: pending approval",
             miss_rate=Decimal("0.4"), avg_diversity=Decimal("1.0"),
             evidence_count=5,
         )
 
-        TuningLog(log_path).record(decision, before_tau=10, before_t_c=Decimal("1.0"))
-        TuningLog(log_path).record(decision, before_tau=11, before_t_c=Decimal("1.0"))
+        TuningLog(log_path).record(decision, before_tau=10)
+        TuningLog(log_path).record(decision, before_tau=11)
 
         lines = log_path.read_text().strip().splitlines()
         assert len(lines) == 2

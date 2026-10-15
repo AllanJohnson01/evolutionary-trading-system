@@ -232,8 +232,7 @@ class HorizonAgent:
         decision = self._tuner.propose(self._cfg, evidence=self._rollout_evidence)
         if decision is None:
             return  # cold start or no-op — nothing to act on, per the tuner
-        before_tau, before_t_c = self._cfg.tau, self._cfg.t_c
-        self._tuning_log.record(decision, before_tau=before_tau, before_t_c=before_t_c)
+        before_tau = self._cfg.tau
+        self._tuning_log.record(decision, before_tau=before_tau)
         if decision.applied:
             self._cfg.tau = decision.proposed_tau
-            self._cfg.t_c = decision.proposed_t_c
