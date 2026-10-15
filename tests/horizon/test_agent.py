@@ -138,8 +138,8 @@ class TestRunOneBar:
         (diversity_score 2 or 3, always >= 1.5) and
         RolloutRecord(price_stayed_in_branch=True) always (miss_rate 0), so
         every real cycle computes a no-op proposal
-        (proposed_tau == cfg.tau and proposed_t_c == cfg.t_c) and
-        JevTuner.propose() now returns None for a no-op exactly like it
+        (proposed_tau == cfg.tau) and JevTuner.propose() now returns None for
+        a no-op exactly like it
         does for cold start (see tuner.py's post-fix-round no-op guard, and
         task-7-brief.md's own callout that this interface changed after the
         brief was written). Driving a real log write through the
@@ -148,7 +148,7 @@ class TestRunOneBar:
 
         Instead, this test seeds `agent._rollout_evidence` directly with
         evidence that Task 6's own tuner tests already prove triggers a
-        real, non-zero (tau, t_c) delta against a default HorizonConfig
+        real, non-zero tau delta against a default HorizonConfig
         (mostly-missed branches + low diversity), then drives exactly one
         bar at `tuning_cadence_bars=1` so `_run_tuning_cycle` runs against
         that evidence. This still exercises the real `_run_tuning_cycle` ->
