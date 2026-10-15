@@ -52,7 +52,7 @@ class RiskConfig:
     daily_loss_limit: Decimal = Decimal("0.02")      # 2% of total capital per day
 
     # Agent-level limits
-    per_agent_allocation_cap: Decimal = Decimal("0.20")   # 20% of active trading pool
+    per_agent_allocation_cap: Decimal = Decimal("0.25")   # 25% of active trading pool — matches equal split across 4 starting agents ($15K each)
     per_asset_concentration: Decimal = Decimal("0.15")    # 15% of agent's own book
 
 

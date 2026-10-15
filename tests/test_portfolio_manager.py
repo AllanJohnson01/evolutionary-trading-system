@@ -21,16 +21,16 @@ class TestAgentRegistration:
     def test_register_agent(self):
         pm = make_pm()
         agent = make_agent()
-        # $60K active pool * 20% cap = $12K max per agent
-        pm.register_agent(agent, Decimal("12000"))
-        assert pm.agent_allocation(agent.agent_id) == Decimal("12000")
+        # $60K active pool * 25% cap = $15K max per agent (matches equal split across 4)
+        pm.register_agent(agent, Decimal("15000"))
+        assert pm.agent_allocation(agent.agent_id) == Decimal("15000")
 
     def test_register_exceeds_cap_raises(self):
         pm = make_pm()
         agent = make_agent()
-        # $60K * 20% = $12K cap; $13K exceeds it
+        # $60K * 25% = $15K cap; $16K exceeds it
         with pytest.raises(ValueError, match="per-agent cap"):
-            pm.register_agent(agent, Decimal("13000"))
+            pm.register_agent(agent, Decimal("16000"))
 
     def test_register_duplicate_raises(self):
         pm = make_pm()
@@ -44,7 +44,7 @@ class TestPositionApproval:
     def setup_method(self):
         self.pm = make_pm()
         self.agent = make_agent()
-        self.pm.register_agent(self.agent, Decimal("12000"))
+        self.pm.register_agent(self.agent, Decimal("15000"))
         self.today = date(2026, 1, 1)
 
     def test_normal_position_approved(self):
@@ -99,20 +99,20 @@ class TestPositionApproval:
         assert "Daily loss" in decision.reason
 
     def test_asset_concentration_partial_approval(self):
-        # Agent has $12K, 15% limit = $1800. Request $2000 → partial approval at $1800
+        # Agent has $15K, 15% limit = $2250. Request $3000 → partial approval at $2250
         req = PositionRequest(
             agent_id=self.agent.agent_id,
             asset="ETH/USDT",
-            notional=Decimal("2000"),
+            notional=Decimal("3000"),
             direction="long",
         )
         decision = self.pm.approve_position(req, self.today)
         assert decision.approved
-        assert decision.approved_notional == Decimal("1800")
+        assert decision.approved_notional == Decimal("2250")
 
     def test_asset_concentration_fully_blocked(self):
-        # Fill up the asset slot first ($12K * 15% = $1800)
-        self.pm.update_position(self.agent.agent_id, "ETH/USDT", Decimal("1800"))
+        # Fill up the asset slot first ($15K * 15% = $2250)
+        self.pm.update_position(self.agent.agent_id, "ETH/USDT", Decimal("2250"))
         req = PositionRequest(
             agent_id=self.agent.agent_id,
             asset="ETH/USDT",
@@ -142,12 +142,12 @@ class TestRebalance:
         pm = make_pm()
         agents = [make_agent() for _ in range(4)]
         for a in agents:
-            # $12K each stays under 20% cap ($60K * 20% = $12K)
-            pm.register_agent(a, Decimal("12000"))
+            # $15K each is exactly the 25% cap ($60K * 25% = $15K)
+            pm.register_agent(a, Decimal("15000"))
 
-        # 4 agents at $12K = $48K deployed; $12K still in pool → $60K total
+        # 4 agents at $15K = $60K deployed; pool = $0 → rebalance redistributes $60K
         new_allocs = pm.rebalance(agents)
         assert len(new_allocs) == 4
-        # $60K / 4 = $15K, but 20% cap on $60K = $12K → capped at $12K
+        # $60K / 4 = $15K, 25% cap on $60K = $15K → equal split at cap
         for alloc in new_allocs.values():
-            assert alloc == Decimal("12000")
+            assert alloc == Decimal("15000")

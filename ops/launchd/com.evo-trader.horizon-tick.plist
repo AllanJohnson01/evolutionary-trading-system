@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.evo-trader.horizon-tick.plist
+  Runs the Horizon decision-tick runner once every hour via launchd.
+
+  BEFORE LOADING:
+    1. Replace every occurrence of FILL_IN with the correct value:
+         WorkingDirectory  — absolute path to the repo root
+                             e.g. /Users/you/code/evolutionary-trading-system
+         ALPACA_API_KEY    — your Alpaca paper-trading API key
+         ALPACA_SECRET_KEY — your Alpaca paper-trading secret key
+         ALPACA_BASE_URL   — leave as https://paper-api.alpaca.markets for paper trading
+
+    2. Replace /path/to/venv/bin/python3 with the absolute path to the Python
+         interpreter inside your virtual environment, e.g.:
+         /Users/you/code/evolutionary-trading-system/.venv/bin/python3
+
+    3. Install the plist:
+         cp com.evo-trader.horizon-tick.plist ~/Library/LaunchAgents/
+         launchctl load ~/Library/LaunchAgents/com.evo-trader.horizon-tick.plist
+
+    4. Logs are written to:
+         ~/Library/Logs/evo-trader/horizon-tick.log
+         ~/Library/Logs/evo-trader/horizon-tick-error.log
+       Create the directory first if it does not exist:
+         mkdir -p ~/Library/Logs/evo-trader
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <key>Label</key>
+    <string>com.evo-trader.horizon-tick</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/venv/bin/python3</string>
+        <string>-m</string>
+        <string>evo_trader.horizon.runner</string>
+        <string>--once</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>WorkingDirectory</key>
+    <string>FILL_IN</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ALPACA_API_KEY</key>
+        <string>FILL_IN</string>
+        <key>ALPACA_SECRET_KEY</key>
+        <string>FILL_IN</string>
+        <key>ALPACA_BASE_URL</key>
+        <string>https://paper-api.alpaca.markets</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>${HOME}/Library/Logs/evo-trader/horizon-tick.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>${HOME}/Library/Logs/evo-trader/horizon-tick-error.log</string>
+
+</dict>
+</plist>
