@@ -1,11 +1,12 @@
 """Tests for HorizonAgent — wires all six Horizon modules into one
 run_one_bar() call. Alpaca client is mocked throughout; no network calls."""
+from collections import deque
 from decimal import Decimal
 from unittest.mock import MagicMock
 
 import pytest
 
-from evo_trader.horizon.agent import HorizonAgent
+from evo_trader.horizon.agent import EVIDENCE_WINDOW_MULTIPLIER, HorizonAgent
 from evo_trader.horizon.alpaca_client import AlpacaClientError, Bar
 from evo_trader.horizon.config import HorizonConfig
 from evo_trader.horizon.market_state import Candidate
@@ -160,25 +161,30 @@ class TestRunOneBar:
         mock_client.get_recent_bars.return_value = [SOME_BAR]
         tuning_log_path = tmp_path / "tuning.jsonl"
 
+        # cadence=2 → maxlen = 2 * EVIDENCE_WINDOW_MULTIPLIER(3) = 6, which
+        # fits the 5 seeded records plus the 1 appended by run_one_bar().
+        # cadence=1 would give maxlen=3 — too small to hold MIN_EVIDENCE_WINDOW=5.
         agent = HorizonAgent(
             client=mock_client,
-            cfg=HorizonConfig(tuning_cadence_bars=1),  # tune every bar
+            cfg=HorizonConfig(tuning_cadence_bars=2),
             symbol="AAPL",
             tuning_log_path=tuning_log_path,
         )
 
-        # Seed evidence that clears MIN_EVIDENCE_WINDOW (5) with a real,
-        # non-no-op delta: mostly-missed branches (miss_rate > 0.3) and low
-        # diversity (avg_diversity < 1.5) against the default
-        # HorizonConfig() (tau=10, t_c=Decimal("1.0")).
+        # Fill the deque to capacity (maxlen=6) with bad evidence so that
+        # even after the 2 bars below add their placeholder records (evicting
+        # 2 old ones), the remaining 4 bad records out of 6 still produce
+        # miss_rate=0.67 > 0.3 → a real, non-zero (tau, t_c) delta.
         agent._rollout_evidence.extend(
             RolloutRecord(
                 candidate_diversity_scores=[1, 1, 1], price_stayed_in_branch=False
             )
-            for _ in range(5)
+            for _ in range(6)
         )
 
-        agent.run_one_bar()  # cadence=1, so this triggers _run_tuning_cycle
+        # bar_count=1 → not a cadence=2 trigger; bar_count=2 → triggers.
+        agent.run_one_bar()
+        agent.run_one_bar()  # second bar triggers _run_tuning_cycle
 
         assert tuning_log_path.exists()
         lines = tuning_log_path.read_text().strip().splitlines()
@@ -252,3 +258,78 @@ class TestSubmitActionSideMapping:
         agent._submit_action(action)
 
         mock_client.submit_order.assert_not_called()
+
+
+class TestRolloutEvidenceWindow:
+    """Evidence list is a bounded deque; old records drop off automatically."""
+
+    def test_evidence_is_a_deque(self, tmp_path):
+        agent = HorizonAgent(
+            client=MagicMock(),
+            cfg=HorizonConfig(tuning_cadence_bars=20),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        assert isinstance(agent._rollout_evidence, deque)
+
+    def test_maxlen_equals_cadence_times_multiplier(self, tmp_path):
+        cadence = 7
+        agent = HorizonAgent(
+            client=MagicMock(),
+            cfg=HorizonConfig(tuning_cadence_bars=cadence),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        assert agent._rollout_evidence.maxlen == cadence * EVIDENCE_WINDOW_MULTIPLIER
+
+    def test_evidence_never_exceeds_maxlen_after_many_bars(self, tmp_path):
+        cadence = 5
+        mock_client = MagicMock()
+        mock_client.get_recent_bars.return_value = [SOME_BAR]
+
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(tuning_cadence_bars=cadence),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        max_expected = cadence * EVIDENCE_WINDOW_MULTIPLIER
+
+        for _ in range(max_expected * 3):
+            agent.run_one_bar()
+
+        assert len(agent._rollout_evidence) == max_expected
+
+    def test_oldest_evidence_is_evicted_as_new_records_arrive(self, tmp_path):
+        """Directly verify FIFO eviction: pre-load exactly maxlen records, add
+        one more, and confirm the deque length is still maxlen and the first
+        original record is gone."""
+        cadence = 4
+        agent = HorizonAgent(
+            client=MagicMock(),
+            cfg=HorizonConfig(tuning_cadence_bars=cadence),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        maxlen = agent._rollout_evidence.maxlen
+
+        sentinel = RolloutRecord(
+            candidate_diversity_scores=[9, 9, 9], price_stayed_in_branch=True
+        )
+        filler = RolloutRecord(
+            candidate_diversity_scores=[1], price_stayed_in_branch=False
+        )
+
+        # Fill to capacity with the sentinel as first entry.
+        agent._rollout_evidence.append(sentinel)
+        for _ in range(maxlen - 1):
+            agent._rollout_evidence.append(filler)
+
+        assert len(agent._rollout_evidence) == maxlen
+        assert agent._rollout_evidence[0] is sentinel
+
+        # One more record pushes the sentinel out.
+        agent._rollout_evidence.append(filler)
+
+        assert len(agent._rollout_evidence) == maxlen
+        assert agent._rollout_evidence[0] is not sentinel

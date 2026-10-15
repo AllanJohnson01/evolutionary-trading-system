@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -49,7 +50,7 @@ class TuningDecision:
 
 class JevTuner:
     def propose(
-        self, cfg: HorizonConfig, evidence: list[RolloutRecord]
+        self, cfg: HorizonConfig, evidence: Sequence[RolloutRecord]
     ) -> TuningDecision | None:
         if len(evidence) < MIN_EVIDENCE_WINDOW:
             return None
@@ -91,7 +92,7 @@ class JevTuner:
         )
 
     def _score_evidence(
-        self, cfg: HorizonConfig, evidence: list[RolloutRecord]
+        self, cfg: HorizonConfig, evidence: Sequence[RolloutRecord]
     ) -> tuple[int, Decimal, Decimal, Decimal]:
         """Minimal rollout-quality scoring: if branches consistently missed
         where price actually went, shorten tau (rollouts are stale faster
