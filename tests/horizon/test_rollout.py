@@ -2,6 +2,7 @@
 procedure (enumerate, roll forward, score by diversity, pick), Mode B.
 branch_generator is injected so these tests are deterministic and don't
 call out to a real model."""
+import random
 from decimal import Decimal
 
 from evo_trader.horizon.alpaca_client import Bar
@@ -79,11 +80,29 @@ class TestPickBest:
         ]
         assert pick_best(scored) == Candidate.HOLD
 
-    def test_tie_picks_first_in_list(self):
-        # Deterministic tie-break: first-listed wins, so behavior never
-        # depends on dict/set ordering surprises.
+    def test_tie_picks_uniformly_from_tied_set(self):
+        # Tie-break must be uniform-random among all tied candidates so that
+        # no action type (e.g. ENTER_LONG) is implicitly preferred by list
+        # order.  A seeded RNG makes the assertion deterministic.
+        scored = [
+            ScoredCandidate(candidate=Candidate.HOLD, branches=[], diversity_score=3),
+            ScoredCandidate(candidate=Candidate.ENTER_LONG, branches=[], diversity_score=3),
+            ScoredCandidate(candidate=Candidate.ENTER_SHORT, branches=[], diversity_score=3),
+        ]
+        rng = random.Random(0)
+        results = {pick_best(scored, rng=rng) for _ in range(60)}
+        assert results == {Candidate.HOLD, Candidate.ENTER_LONG, Candidate.ENTER_SHORT}
+
+    def test_tie_seeded_rng_is_deterministic(self):
         scored = [
             ScoredCandidate(candidate=Candidate.HOLD, branches=[], diversity_score=3),
             ScoredCandidate(candidate=Candidate.ENTER_LONG, branches=[], diversity_score=3),
         ]
-        assert pick_best(scored) == Candidate.HOLD
+        result_a = pick_best(scored, rng=random.Random(42))
+        result_b = pick_best(scored, rng=random.Random(42))
+        assert result_a == result_b
+
+    def test_empty_scored_list_raises(self):
+        import pytest
+        with pytest.raises(ValueError, match="at least one"):
+            pick_best([])
