@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -31,6 +31,26 @@ class PositionDecision:
     approved: bool
     reason: str
     approved_notional: Decimal = Decimal("0")
+
+
+@dataclass
+class BlackoutWindow:
+    """A time window during which no new entries are permitted."""
+
+    start: datetime
+    end: datetime
+    reason: str = ""
+
+
+@dataclass
+class MarketPosture:
+    """
+    Portfolio-level market posture communicated to the manager by an external
+    risk or macro overlay. Controls overall risk level and scheduled blackouts.
+    """
+
+    risk_dial: Decimal = Decimal("1")
+    blackout_windows: list[BlackoutWindow] = field(default_factory=list)
 
 
 @dataclass
@@ -109,13 +129,32 @@ class PortfolioManager:
     # ------------------------------------------------------------------
 
     def approve_position(
-        self, request: PositionRequest, today: Optional[date] = None
+        self,
+        request: PositionRequest,
+        today: Optional[date] = None,
+        posture: Optional["MarketPosture"] = None,
     ) -> PositionDecision:
         """
         Gate for every position an agent wants to open.
         Returns PositionDecision with approved=False if any limit would be breached.
+
+        Args:
+            request: The position request from an agent.
+            today: Date override for testing; defaults to date.today().
+            posture: Optional market posture carrying blackout windows. When
+                     supplied, any active blackout window blocks all new entries.
         """
         today = today or date.today()
+
+        # 0. Blackout window check (new entry forbidden during scheduled events)
+        if posture is not None:
+            now = datetime.now(timezone.utc)
+            for window in posture.blackout_windows:
+                if window.start <= now <= window.end:
+                    return PositionDecision(
+                        approved=False,
+                        reason=f"Active blackout window: {window.reason}",
+                    )
 
         agent = self._agents.get(request.agent_id)
         if not agent or not agent.is_active():

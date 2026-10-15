@@ -57,6 +57,19 @@ class RiskConfig:
 
 
 # ---------------------------------------------------------------------------
+# Position sizing configuration
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class SizingConfig:
+    half_kelly_fraction: Decimal = Decimal("0.5")           # always half-Kelly
+    cold_start_threshold: int = 30                          # trades before Kelly kicks in
+    cold_start_fixed_risk: Decimal = Decimal("0.01")        # 1% of allocation per trade
+    ewma_span: int = 20                                     # EWMA volatility span (bars)
+    stop_sigma_multiplier: Decimal = Decimal("3")           # 3σ tail buffer for stops
+
+
+# ---------------------------------------------------------------------------
 # Evolution engine rules
 # ---------------------------------------------------------------------------
 
@@ -137,6 +150,7 @@ class AgentConfig:
 SYSTEM_CONFIG: Final = {
     "capital": CapitalConfig(),
     "risk": RiskConfig(),
+    "sizing": SizingConfig(),
     "evolution": EvolutionConfig(),
     "markets": MarketConfig(),
 }
