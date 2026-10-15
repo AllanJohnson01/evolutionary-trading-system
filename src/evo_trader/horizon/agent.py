@@ -123,7 +123,32 @@ class HorizonAgent:
         return action
 
     def _submit_action(self, action: Candidate) -> None:
-        side = "buy" if action in (Candidate.ENTER_LONG, Candidate.RESIZE) else "sell"
+        """Submits an order for ``action``, but only for the two actions
+        whose order side is unambiguous without real position tracking:
+        ``ENTER_LONG`` (buy) and ``ENTER_SHORT`` (sell).
+
+        ``RESIZE``, ``EXIT``, and ``HEDGE`` are deliberately a no-op here.
+        Their correct side depends on the direction of an existing
+        position, but ``self._position_notional`` is never updated after a
+        fill anywhere in this class — there is no real position-tracking
+        state yet for any of these three to read a direction from.
+        Guessing a side (e.g. always "sell") would be a silent wrong-side
+        order in live paper trading, which is worse than doing nothing.
+        Building real position tracking so these three can be handled
+        correctly is tracked as separate follow-up work, not improvised
+        here. This mirrors the fail-closed pattern already used by
+        ``constraints.py`` (breach -> HOLD) and the tuner's live-mode gate
+        (uncertain -> no auto-apply): when correctness can't be guaranteed,
+        do less, not more.
+        """
+        if action == Candidate.ENTER_LONG:
+            side = "buy"
+        elif action == Candidate.ENTER_SHORT:
+            side = "sell"
+        else:
+            # RESIZE / EXIT / HEDGE: no real position-tracking state exists
+            # yet to determine the correct side. Intentional no-op.
+            return
         self._client.submit_order(
             self._symbol, side=side, notional=Decimal("100")
         )

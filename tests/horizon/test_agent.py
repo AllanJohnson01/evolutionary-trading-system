@@ -149,3 +149,72 @@ class TestRunOneBar:
         assert tuning_log_path.exists()
         lines = tuning_log_path.read_text().strip().splitlines()
         assert len(lines) >= 1
+
+
+class TestSubmitActionSideMapping:
+    """`_submit_action` only knows a correct order side for ENTER_LONG
+    (buy) and ENTER_SHORT (sell). RESIZE/EXIT/HEDGE each depend on the
+    direction of an existing position, and `self._position_notional` is
+    never updated after a fill anywhere in this class, so there is no real
+    position-tracking state to derive a correct side from for those three.
+    Guessing a side for them would risk a silent wrong-side order in paper
+    trading, so `_submit_action` must no-op for all three instead — this
+    mirrors the project's existing fail-closed pattern (e.g.
+    constraints.py's breach -> HOLD, and the tuner's live-mode gate).
+
+    These tests call `_submit_action` directly rather than going through
+    `run_one_bar()`, because which candidate `run_one_bar()` ultimately
+    picks depends on the placeholder branch generator's seeded-random
+    branch counts and on `build_candidates`'s position-state gating —
+    neither of which is a reliable way to force a specific action
+    deterministically. Testing `_submit_action` directly against each
+    action name is the precise, stable way to pin this behavior.
+    """
+
+    def test_enter_long_submits_buy(self, tmp_path):
+        mock_client = MagicMock()
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+
+        agent._submit_action(Candidate.ENTER_LONG)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="buy", notional=Decimal("100")
+        )
+
+    def test_enter_short_submits_sell(self, tmp_path):
+        mock_client = MagicMock()
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+
+        agent._submit_action(Candidate.ENTER_SHORT)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="sell", notional=Decimal("100")
+        )
+
+    @pytest.mark.parametrize(
+        "action", [Candidate.RESIZE, Candidate.EXIT, Candidate.HEDGE]
+    )
+    def test_ambiguous_direction_actions_never_submit_an_order(
+        self, tmp_path, action
+    ):
+        mock_client = MagicMock()
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+
+        agent._submit_action(action)
+
+        mock_client.submit_order.assert_not_called()
