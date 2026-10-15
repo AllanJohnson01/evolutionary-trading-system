@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.evo-trader.horizon-review.plist
+  Runs Horizon's daily self-review at 00:15 every day via launchd.
+
+  TIMING NOTE:
+    StartCalendarInterval fires at 00:15 LOCAL machine time, not UTC.
+    If you want this to run at 00:15 UTC, set your machine's timezone to UTC:
+      sudo systemsetup -settimezone UTC
+    Otherwise adjust Hour/Minute to match your machine's UTC offset.
+    For example, on a machine in UTC-5 (EST), firing at 19:15 local time
+    equals 00:15 UTC the following day — set Hour=19, Minute=15.
+
+  BEFORE LOADING:
+    1. Replace every occurrence of FILL_IN with the correct value:
+         WorkingDirectory  — absolute path to the repo root
+                             e.g. /Users/you/code/evolutionary-trading-system
+         ALPACA_API_KEY    — your Alpaca paper-trading API key
+         ALPACA_SECRET_KEY — your Alpaca paper-trading secret key
+         ALPACA_BASE_URL   — leave as https://paper-api.alpaca.markets for paper trading
+
+    2. Replace /path/to/venv/bin/python3 with the absolute path to the Python
+         interpreter inside your virtual environment, e.g.:
+         /Users/you/code/evolutionary-trading-system/.venv/bin/python3
+
+    3. Install the plist:
+         cp com.evo-trader.horizon-review.plist ~/Library/LaunchAgents/
+         launchctl load ~/Library/LaunchAgents/com.evo-trader.horizon-review.plist
+
+    4. Logs are written to:
+         ~/Library/Logs/evo-trader/horizon-review.log
+         ~/Library/Logs/evo-trader/horizon-review-error.log
+       Create the directory first if it does not exist:
+         mkdir -p ~/Library/Logs/evo-trader
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <key>Label</key>
+    <string>com.evo-trader.horizon-review</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/venv/bin/python3</string>
+        <string>-m</string>
+        <string>evo_trader.horizon.self_review</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>0</integer>
+        <key>Minute</key>
+        <integer>15</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>WorkingDirectory</key>
+    <string>FILL_IN</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ALPACA_API_KEY</key>
+        <string>FILL_IN</string>
+        <key>ALPACA_SECRET_KEY</key>
+        <string>FILL_IN</string>
+        <key>ALPACA_BASE_URL</key>
+        <string>https://paper-api.alpaca.markets</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>${HOME}/Library/Logs/evo-trader/horizon-review.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>${HOME}/Library/Logs/evo-trader/horizon-review-error.log</string>
+
+</dict>
+</plist>
