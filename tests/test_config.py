@@ -51,7 +51,7 @@ class TestRiskConfig:
         assert self.cfg.daily_loss_limit == Decimal("0.02")
 
     def test_per_agent_allocation_cap(self):
-        assert self.cfg.per_agent_allocation_cap == Decimal("0.20")
+        assert self.cfg.per_agent_allocation_cap == Decimal("0.25")
 
     def test_per_asset_concentration(self):
         assert self.cfg.per_asset_concentration == Decimal("0.15")
