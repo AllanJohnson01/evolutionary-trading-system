@@ -75,6 +75,22 @@ class HorizonAgent:
         self._position_notional = Decimal("0")
 
     def run_one_bar(self) -> Candidate:
+        """Runs one full decision cycle and returns the ``Candidate`` that
+        was *chosen* by the decision loop (``pick_best``'s output) — not
+        necessarily one that was *executed*.
+
+        ``HOLD`` never submits an order by design. ``RESIZE``, ``EXIT``,
+        and ``HEDGE`` currently never submit an order either — see
+        ``_submit_action``'s docstring for why (no real position-tracking
+        state exists yet to pick a correct side). Only ``ENTER_LONG`` and
+        ``ENTER_SHORT`` currently result in an actual order submission,
+        and even then the submission may fail without raising (see the
+        ``AlpacaClientError`` handling around ``_submit_action`` below) —
+        a failed submission still returns the originally chosen action,
+        since that was the decision actually made this bar.
+
+        Callers must not assume "returned X" means "X was executed."
+        """
         self._bar_count += 1
 
         try:
@@ -115,7 +131,15 @@ class HorizonAgent:
         )
 
         if action != Candidate.HOLD:
-            self._submit_action(action)
+            try:
+                self._submit_action(action)
+            except AlpacaClientError:
+                # Order-submission failure: the decision was already made
+                # (`action`), so unlike the fetch-failure path above we do
+                # NOT retroactively downgrade to HOLD — that would misreport
+                # what the loop actually chose. Never crash the loop; let
+                # tuning-cadence and evidence bookkeeping proceed normally.
+                pass
 
         if self._bar_count % self._cfg.tuning_cadence_bars == 0:
             self._run_tuning_cycle()

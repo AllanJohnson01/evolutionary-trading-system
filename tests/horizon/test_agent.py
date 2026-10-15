@@ -68,6 +68,42 @@ class TestRunOneBar:
         assert action == Candidate.HOLD
         mock_client.submit_order.assert_not_called()
 
+    def test_submit_order_failure_does_not_crash_and_returns_chosen_action(
+        self, tmp_path, monkeypatch
+    ):
+        """submit_order raising AlpacaClientError (e.g. Alpaca's paper API
+        rejecting a fractional short-sell order) must not escape
+        run_one_bar(): the chosen Candidate is still returned (unlike the
+        fetch_market_state failure path, this does NOT retroactively
+        downgrade to HOLD), and the rest of the bar's bookkeeping —
+        evidence recording and the tuning-cadence check — still runs."""
+        mock_client = MagicMock()
+        mock_client.get_recent_bars.return_value = [SOME_BAR]
+        mock_client.submit_order.side_effect = AlpacaClientError("order rejected")
+        tuning_log_path = tmp_path / "tuning.jsonl"
+
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(tuning_cadence_bars=1),
+            symbol="AAPL",
+            tuning_log_path=tuning_log_path,
+        )
+        # Force the chosen action to be a real order-submitting one so
+        # _submit_action actually calls submit_order.
+        monkeypatch.setattr(
+            "evo_trader.horizon.agent.pick_best", lambda scored: Candidate.ENTER_LONG
+        )
+
+        action = agent.run_one_bar()
+
+        assert action == Candidate.ENTER_LONG
+        mock_client.submit_order.assert_called_once()
+        # Evidence recording happened before the submit attempt.
+        assert len(agent._rollout_evidence) == 1
+        # Tuning cadence check still ran (cadence=1, cold start -> no file
+        # yet, but _run_tuning_cycle was invoked without raising).
+        assert not tuning_log_path.exists()
+
     def test_tuner_runs_every_tuning_cadence_bars(self, tmp_path):
         mock_client = MagicMock()
         mock_client.get_recent_bars.return_value = [SOME_BAR]
@@ -83,14 +119,12 @@ class TestRunOneBar:
         for _ in range(3):
             agent.run_one_bar()
 
-        # After exactly tuning_cadence_bars calls, a tuning decision should
-        # have been logged (cold-start evidence permitting — MIN_EVIDENCE_
-        # WINDOW is 5, so with only 3 bars no decision logs yet; this test
-        # pins that the tuner is invoked on cadence without erroring, not
-        # that it necessarily produces a logged decision yet).
-        assert tuning_log_path.exists() or not tuning_log_path.exists()
-        # ^ invocation-without-crash is the behavior under test here;
-        # Task 6 already covers the cold-start-returns-None case directly.
+        # After exactly tuning_cadence_bars calls, no tuning decision should
+        # have been logged yet: MIN_EVIDENCE_WINDOW is 5, so with only 3
+        # bars of evidence, JevTuner.propose() returns None (cold start),
+        # _run_tuning_cycle returns early, and TuningLog.record() — the
+        # only thing that ever creates the log file — is never called.
+        assert not tuning_log_path.exists()
 
     def test_tuning_log_grows_once_evidence_window_is_met(self, tmp_path):
         """Pins that _run_tuning_cycle actually writes to the log once real,
