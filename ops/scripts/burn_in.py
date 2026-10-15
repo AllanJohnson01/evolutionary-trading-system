@@ -156,15 +156,16 @@ def run_horizon_tick() -> dict:
     from evo_trader.horizon.agent import HorizonAgent
     from evo_trader.horizon.alpaca_client import AlpacaPaperClient
     from evo_trader.horizon.config import HorizonConfig
-    from evo_trader.horizon.tuner import TuningLog
 
     client = AlpacaPaperClient(
         api_key=alpaca_key,
         api_secret=alpaca_secret,
     )
     cfg = HorizonConfig()
-    tuning_log = TuningLog(_REPO_ROOT / "state" / "horizon_tuning.jsonl")
-    agent = HorizonAgent(client=client, config=cfg, symbol=symbol, tuning_log=tuning_log)
+    tuning_log_path = _REPO_ROOT / "state" / "horizon_tuning.jsonl"
+    agent = HorizonAgent(
+        client=client, cfg=cfg, symbol=symbol, tuning_log_path=tuning_log_path
+    )
 
     candidate = agent.run_one_bar()
     logger.info("Horizon tick complete — candidate: %s", candidate)
