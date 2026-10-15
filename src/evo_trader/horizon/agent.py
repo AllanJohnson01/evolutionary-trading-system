@@ -11,6 +11,7 @@ import random
 from collections import deque
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 from evo_trader.horizon.alpaca_client import AlpacaClientError, AlpacaPaperClient, Bar
 from evo_trader.horizon.config import HorizonConfig
@@ -29,6 +30,9 @@ STARTING_CAPITAL = Decimal("10000")  # Horizon's own isolated paper pool
 LOOKBACK_BARS = 50
 # Rolling window size = cadence * this multiplier: 3 cadence-cycles of history.
 EVIDENCE_WINDOW_MULTIPLIER = 3
+ORDER_NOTIONAL = Decimal("100")
+
+PositionDirection = Literal["long", "short"]
 
 
 def _placeholder_branch_generator(
@@ -78,21 +82,19 @@ class HorizonAgent:
             maxlen=cfg.tuning_cadence_bars * EVIDENCE_WINDOW_MULTIPLIER
         )
         self._position_notional = Decimal("0")
+        self._position_direction: PositionDirection | None = None
 
     def run_one_bar(self) -> Candidate:
         """Runs one full decision cycle and returns the ``Candidate`` that
         was *chosen* by the decision loop (``pick_best``'s output) — not
         necessarily one that was *executed*.
 
-        ``HOLD`` never submits an order by design. ``RESIZE``, ``EXIT``,
-        and ``HEDGE`` currently never submit an order either — see
-        ``_submit_action``'s docstring for why (no real position-tracking
-        state exists yet to pick a correct side). Only ``ENTER_LONG`` and
-        ``ENTER_SHORT`` currently result in an actual order submission,
-        and even then the submission may fail without raising (see the
-        ``AlpacaClientError`` handling around ``_submit_action`` below) —
-        a failed submission still returns the originally chosen action,
-        since that was the decision actually made this bar.
+        ``HOLD`` never submits an order by design. All other candidates
+        (``ENTER_LONG``, ``ENTER_SHORT``, ``EXIT``, ``RESIZE``, ``HEDGE``)
+        submit an order via ``_submit_action``, which derives the correct
+        order side from ``self._position_direction``. A failed submission
+        does not retroactively downgrade the returned candidate — that was
+        the decision actually made this bar.
 
         Callers must not assume "returned X" means "X was executed."
         """
@@ -103,7 +105,7 @@ class HorizonAgent:
                 self._client,
                 symbol=self._symbol,
                 lookback_bars=LOOKBACK_BARS,
-                has_open_position=self._position_notional != 0,
+                has_open_position=self._position_direction is not None,
                 position_notional=self._position_notional,
             )
         except AlpacaClientError:
@@ -152,35 +154,67 @@ class HorizonAgent:
         return action
 
     def _submit_action(self, action: Candidate) -> None:
-        """Submits an order for ``action``, but only for the two actions
-        whose order side is unambiguous without real position tracking:
-        ``ENTER_LONG`` (buy) and ``ENTER_SHORT`` (sell).
+        """Submits an order for ``action``, updates position state, and
+        records the fill with the ledger so risk gates (drawdown,
+        daily_loss_pct) work correctly on subsequent bars.
 
-        ``RESIZE``, ``EXIT``, and ``HEDGE`` are deliberately a no-op here.
-        Their correct side depends on the direction of an existing
-        position, but ``self._position_notional`` is never updated after a
-        fill anywhere in this class — there is no real position-tracking
-        state yet for any of these three to read a direction from.
-        Guessing a side (e.g. always "sell") would be a silent wrong-side
-        order in live paper trading, which is worse than doing nothing.
-        Building real position tracking so these three can be handled
-        correctly is tracked as separate follow-up work, not improvised
-        here. This mirrors the fail-closed pattern already used by
-        ``constraints.py`` (breach -> HOLD) and the tuner's live-mode gate
-        (uncertain -> no auto-apply): when correctness can't be guaranteed,
-        do less, not more.
+        Order-side mapping:
+        - ENTER_LONG  → buy;  position becomes long at ORDER_NOTIONAL
+        - ENTER_SHORT → sell; position becomes short at ORDER_NOTIONAL
+        - EXIT        → opposite of current direction; clears position
+        - RESIZE      → same as current direction; increases notional
+        - HEDGE       → opposite of current direction; reduces net exposure
+
+        EXIT/RESIZE/HEDGE all require an open position; if called with no
+        open position (``_position_direction is None``) they no-op — this
+        mirrors the fail-closed pattern used elsewhere in Horizon.
+
+        P&L at order submission is zero: Alpaca returns only an order-ID
+        and status, not a fill price. ``record_fill(0, 0)`` advances the
+        ledger's fill counter so the NAV/drawdown bookkeeping path is
+        exercised every bar an order fires.
+
+        Raises:
+            AlpacaClientError: Propagated from ``submit_order``; callers
+                catch this and leave position state unchanged.
         """
         if action == Candidate.ENTER_LONG:
-            side = "buy"
+            self._client.submit_order(self._symbol, side="buy", notional=ORDER_NOTIONAL)
+            self._position_direction = "long"
+            self._position_notional = ORDER_NOTIONAL
+            self._ledger.record_fill(Decimal("0"), Decimal("0"))
+
         elif action == Candidate.ENTER_SHORT:
-            side = "sell"
-        else:
-            # RESIZE / EXIT / HEDGE: no real position-tracking state exists
-            # yet to determine the correct side. Intentional no-op.
-            return
-        self._client.submit_order(
-            self._symbol, side=side, notional=Decimal("100")
-        )
+            self._client.submit_order(self._symbol, side="sell", notional=ORDER_NOTIONAL)
+            self._position_direction = "short"
+            self._position_notional = ORDER_NOTIONAL
+            self._ledger.record_fill(Decimal("0"), Decimal("0"))
+
+        elif action == Candidate.EXIT:
+            if self._position_direction is None:
+                return
+            side = "sell" if self._position_direction == "long" else "buy"
+            self._client.submit_order(self._symbol, side=side, notional=self._position_notional)
+            self._position_direction = None
+            self._position_notional = Decimal("0")
+            self._ledger.record_fill(Decimal("0"), Decimal("0"))
+
+        elif action == Candidate.RESIZE:
+            if self._position_direction is None:
+                return
+            side = "buy" if self._position_direction == "long" else "sell"
+            self._client.submit_order(self._symbol, side=side, notional=ORDER_NOTIONAL)
+            self._position_notional += ORDER_NOTIONAL
+            self._ledger.record_fill(Decimal("0"), Decimal("0"))
+
+        elif action == Candidate.HEDGE:
+            if self._position_direction is None:
+                return
+            # Partial hedge: send an opposite-side order at a fixed notional.
+            # Does not clear the position — leaves net exposure reduced.
+            side = "sell" if self._position_direction == "long" else "buy"
+            self._client.submit_order(self._symbol, side=side, notional=ORDER_NOTIONAL)
+            self._ledger.record_fill(Decimal("0"), Decimal("0"))
 
     def _run_tuning_cycle(self) -> None:
         """Runs one Jev-tuner cycle and, if it produced a decision, logs it

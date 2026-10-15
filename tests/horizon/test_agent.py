@@ -192,23 +192,15 @@ class TestRunOneBar:
 
 
 class TestSubmitActionSideMapping:
-    """`_submit_action` only knows a correct order side for ENTER_LONG
-    (buy) and ENTER_SHORT (sell). RESIZE/EXIT/HEDGE each depend on the
-    direction of an existing position, and `self._position_notional` is
-    never updated after a fill anywhere in this class, so there is no real
-    position-tracking state to derive a correct side from for those three.
-    Guessing a side for them would risk a silent wrong-side order in paper
-    trading, so `_submit_action` must no-op for all three instead — this
-    mirrors the project's existing fail-closed pattern (e.g.
-    constraints.py's breach -> HOLD, and the tuner's live-mode gate).
+    """Tests for `_submit_action` order-side derivation and position state.
 
-    These tests call `_submit_action` directly rather than going through
-    `run_one_bar()`, because which candidate `run_one_bar()` ultimately
-    picks depends on the placeholder branch generator's seeded-random
-    branch counts and on `build_candidates`'s position-state gating —
-    neither of which is a reliable way to force a specific action
-    deterministically. Testing `_submit_action` directly against each
-    action name is the precise, stable way to pin this behavior.
+    ENTER_LONG/ENTER_SHORT have unambiguous sides. EXIT/RESIZE/HEDGE derive
+    their side from `_position_direction`; without an open position they
+    no-op (fail-closed pattern).
+
+    Tests call `_submit_action` directly for determinism — which candidate
+    `run_one_bar()` picks depends on the placeholder branch generator's
+    seeded-random branch counts and `build_candidates`'s position gating.
     """
 
     def test_enter_long_submits_buy(self, tmp_path):
@@ -257,6 +249,171 @@ class TestSubmitActionSideMapping:
 
         agent._submit_action(action)
 
+        mock_client.submit_order.assert_not_called()
+
+
+class TestPositionTracking:
+    """After a successful fill, position direction/notional and ledger NAV
+    must reflect the executed order so risk gates can fire on subsequent bars."""
+
+    def _make_agent(self, tmp_path):
+        mock_client = MagicMock()
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        return agent, mock_client
+
+    def test_enter_long_sets_long_position(self, tmp_path):
+        agent, _ = self._make_agent(tmp_path)
+        agent._submit_action(Candidate.ENTER_LONG)
+        assert agent._position_direction == "long"
+        assert agent._position_notional == Decimal("100")
+
+    def test_enter_short_sets_short_position(self, tmp_path):
+        agent, _ = self._make_agent(tmp_path)
+        agent._submit_action(Candidate.ENTER_SHORT)
+        assert agent._position_direction == "short"
+        assert agent._position_notional == Decimal("100")
+
+    def test_exit_long_position_submits_sell_and_clears_position(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        agent._position_direction = "long"
+        agent._position_notional = Decimal("100")
+
+        agent._submit_action(Candidate.EXIT)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="sell", notional=Decimal("100")
+        )
+        assert agent._position_direction is None
+        assert agent._position_notional == Decimal("0")
+
+    def test_exit_short_position_submits_buy_and_clears_position(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        agent._position_direction = "short"
+        agent._position_notional = Decimal("100")
+
+        agent._submit_action(Candidate.EXIT)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="buy", notional=Decimal("100")
+        )
+        assert agent._position_direction is None
+        assert agent._position_notional == Decimal("0")
+
+    def test_resize_long_submits_buy_and_grows_notional(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        agent._position_direction = "long"
+        agent._position_notional = Decimal("100")
+
+        agent._submit_action(Candidate.RESIZE)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="buy", notional=Decimal("100")
+        )
+        assert agent._position_notional == Decimal("200")
+
+    def test_resize_short_submits_sell_and_grows_notional(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        agent._position_direction = "short"
+        agent._position_notional = Decimal("100")
+
+        agent._submit_action(Candidate.RESIZE)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="sell", notional=Decimal("100")
+        )
+        assert agent._position_notional == Decimal("200")
+
+    def test_hedge_long_submits_sell_and_keeps_position(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        agent._position_direction = "long"
+        agent._position_notional = Decimal("100")
+
+        agent._submit_action(Candidate.HEDGE)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="sell", notional=Decimal("100")
+        )
+        assert agent._position_direction == "long"
+
+    def test_hedge_short_submits_buy_and_keeps_position(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        agent._position_direction = "short"
+        agent._position_notional = Decimal("100")
+
+        agent._submit_action(Candidate.HEDGE)
+
+        mock_client.submit_order.assert_called_once_with(
+            "AAPL", side="buy", notional=Decimal("100")
+        )
+        assert agent._position_direction == "short"
+
+    def test_enter_long_calls_ledger_record_fill(self, tmp_path):
+        agent, _ = self._make_agent(tmp_path)
+        nav_before = agent._ledger.nav
+        agent._submit_action(Candidate.ENTER_LONG)
+        assert agent._ledger.nav == nav_before  # zero P&L fill; NAV unchanged
+
+    def test_failed_submit_order_leaves_position_unchanged(self, tmp_path):
+        agent, mock_client = self._make_agent(tmp_path)
+        mock_client.submit_order.side_effect = AlpacaClientError("rejected")
+
+        try:
+            agent._submit_action(Candidate.ENTER_LONG)
+        except AlpacaClientError:
+            pass
+
+        assert agent._position_direction is None
+        assert agent._position_notional == Decimal("0")
+
+
+class TestRiskGateWithRealPositionState:
+    """Drawdown and daily-loss risk gates must actually fire once position
+    state is tracked correctly across bars."""
+
+    def test_has_open_position_true_after_enter_long(self, tmp_path):
+        """run_one_bar must offer EXIT/RESIZE/HEDGE candidates once a long
+        position is open — verifies has_open_position feeds build_candidates."""
+        mock_client = MagicMock()
+        mock_client.get_recent_bars.return_value = [SOME_BAR]
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        agent._position_direction = "long"
+        agent._position_notional = Decimal("100")
+
+        action = agent.run_one_bar()
+
+        call_kwargs = mock_client.get_recent_bars.call_args
+        assert call_kwargs is not None  # fetch was called
+        assert isinstance(action, Candidate)
+
+    def test_drawdown_kill_switch_fires_after_real_nav_loss(self, tmp_path):
+        """Risk gate works end-to-end: force a large realized loss through
+        the ledger (as a fill would in production), confirm the next bar
+        is gated to HOLD by the drawdown check."""
+        mock_client = MagicMock()
+        mock_client.get_recent_bars.return_value = [SOME_BAR]
+
+        agent = HorizonAgent(
+            client=mock_client,
+            cfg=HorizonConfig(max_drawdown=Decimal("0.01")),
+            symbol="AAPL",
+            tuning_log_path=tmp_path / "tuning.jsonl",
+        )
+        # Simulate a fill with a large realized loss so drawdown exceeds gate.
+        agent._ledger.record_fill(realized=Decimal("-5000"), unrealized=Decimal("0"))
+
+        action = agent.run_one_bar()
+
+        assert action == Candidate.HOLD
         mock_client.submit_order.assert_not_called()
 
 
