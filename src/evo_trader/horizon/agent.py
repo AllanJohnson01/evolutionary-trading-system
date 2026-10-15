@@ -8,6 +8,7 @@ guarantee; do not add either import to this file.
 from __future__ import annotations
 
 import random
+from collections import deque
 from decimal import Decimal
 from pathlib import Path
 
@@ -26,6 +27,8 @@ from evo_trader.horizon.tuner import JevTuner, RolloutRecord, TuningLog
 
 STARTING_CAPITAL = Decimal("10000")  # Horizon's own isolated paper pool
 LOOKBACK_BARS = 50
+# Rolling window size = cadence * this multiplier: 3 cadence-cycles of history.
+EVIDENCE_WINDOW_MULTIPLIER = 3
 
 
 def _placeholder_branch_generator(
@@ -71,7 +74,9 @@ class HorizonAgent:
         self._tuner = JevTuner()
         self._tuning_log = TuningLog(tuning_log_path)
         self._bar_count = 0
-        self._rollout_evidence: list[RolloutRecord] = []
+        self._rollout_evidence: deque[RolloutRecord] = deque(
+            maxlen=cfg.tuning_cadence_bars * EVIDENCE_WINDOW_MULTIPLIER
+        )
         self._position_notional = Decimal("0")
 
     def run_one_bar(self) -> Candidate:
