@@ -35,6 +35,10 @@ sys.path.insert(0, str(_REPO_ROOT / "src"))
 from evo_trader.agents.base import AgentState, AgentType, TradingAgent
 from evo_trader.config.parameters import CapitalConfig
 from evo_trader.portfolio.manager import PortfolioManager
+from evo_trader.strategies.breakout import BreakoutStrategy
+from evo_trader.strategies.grid import GridStrategy
+from evo_trader.strategies.intraday_momentum import IntradayMomentumStrategy
+from evo_trader.strategies.mean_reversion import MeanReversionStrategy
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +60,15 @@ _STARTING_AGENTS = [
     ("Breakout",         AgentType.MOMENTUM),   # breakout treated as momentum family
     ("Grid-Trader",      AgentType.GRID),
     ("Mean-Reversion",   AgentType.MEAN_REVERSION),
+]
+
+
+# One strategy per starting agent, in the same order as _STARTING_AGENTS.
+_STRATEGY_FACTORIES = [
+    IntradayMomentumStrategy,
+    BreakoutStrategy,
+    GridStrategy,
+    MeanReversionStrategy,
 ]
 
 
@@ -114,7 +127,7 @@ def run_tactical_cycle() -> dict:
     pm = PortfolioManager()
     # Re-register starting agents so the runner's PM knows them
     capital_cfg = CapitalConfig()
-    init_population(pm, capital_cfg)
+    agents = init_population(pm, capital_cfg)
 
     posture_store = PostureStore()
     log_path = _REPO_ROOT / "state" / "decisions.jsonl"
@@ -126,6 +139,10 @@ def run_tactical_cycle() -> dict:
         order_client=order_client,
         log_path=log_path,
     )
+
+    symbol = os.getenv("BURN_IN_SYMBOL", "SPY")
+    for agent, factory in zip(agents, _STRATEGY_FACTORIES):
+        runner.register_strategy(factory(symbol), agent.agent_id)
 
     runner.run_once()
     logger.info("Tactical cycle complete — decisions logged to %s", log_path)
