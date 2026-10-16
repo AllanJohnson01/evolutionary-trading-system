@@ -32,13 +32,13 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from evo_trader.agents.base import AgentState, AgentType, TradingAgent
 from evo_trader.config.parameters import CapitalConfig
 from evo_trader.portfolio.manager import PortfolioManager
-from evo_trader.strategies.breakout import BreakoutStrategy
-from evo_trader.strategies.grid import GridStrategy
-from evo_trader.strategies.intraday_momentum import IntradayMomentumStrategy
-from evo_trader.strategies.mean_reversion import MeanReversionStrategy
+from evo_trader.tactical.population import (
+    STARTING_AGENTS,
+    init_population,
+    register_starting_strategies,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,47 +49,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger("burn_in")
-
-
-# ---------------------------------------------------------------------------
-# Population definition — 4 starting agents, diverse by design
-# ---------------------------------------------------------------------------
-
-_STARTING_AGENTS = [
-    ("Momentum-Hunter",  AgentType.MOMENTUM),
-    ("Breakout",         AgentType.MOMENTUM),   # breakout treated as momentum family
-    ("Grid-Trader",      AgentType.GRID),
-    ("Mean-Reversion",   AgentType.MEAN_REVERSION),
-]
-
-
-# One strategy per starting agent, in the same order as _STARTING_AGENTS.
-_STRATEGY_FACTORIES = [
-    IntradayMomentumStrategy,
-    BreakoutStrategy,
-    GridStrategy,
-    MeanReversionStrategy,
-]
-
-
-def init_population(portfolio_manager: PortfolioManager, capital_cfg: CapitalConfig) -> list[TradingAgent]:
-    """Register the 4 starting agents with equal capital allocation."""
-    per_agent = capital_cfg.initial_agent_allocation
-    agents: list[TradingAgent] = []
-
-    for name, agent_type in _STARTING_AGENTS:
-        agent = TradingAgent(
-            agent_id=str(uuid.uuid4()),
-            agent_type=agent_type,
-            state=AgentState.ACTIVE,
-            allocated_capital=per_agent,
-            generation=0,
-        )
-        portfolio_manager.register_agent(agent, per_agent)
-        logger.info("Registered agent %s (%s) with $%s", name, agent_type.value, per_agent)
-        agents.append(agent)
-
-    return agents
 
 
 def run_tactical_cycle() -> dict:
@@ -141,8 +100,7 @@ def run_tactical_cycle() -> dict:
     )
 
     symbol = os.getenv("BURN_IN_SYMBOL", "SPY")
-    for agent, factory in zip(agents, _STRATEGY_FACTORIES):
-        runner.register_strategy(factory(symbol), agent.agent_id)
+    register_starting_strategies(runner, agents, symbol)
 
     runner.run_once()
     logger.info("Tactical cycle complete — decisions logged to %s", log_path)
@@ -228,7 +186,7 @@ def main() -> None:
                 "agent_type": atype.value,
                 "allocated_capital": str(capital_cfg.initial_agent_allocation),
             }
-            for name, atype in _STARTING_AGENTS
+            for name, atype, _ in STARTING_AGENTS
         ],
     }
     manifest_path.write_text(json.dumps(manifest, indent=2))
