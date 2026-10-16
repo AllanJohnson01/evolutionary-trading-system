@@ -1,0 +1,49 @@
+{
+  "fetched_at": "2026-10-15T19:40:20.192861+00:00",
+  "events": [
+    {
+      "timestamp": "2026-10-20T16:05:00-04:00",
+      "symbol_scope": [
+        "NFLX"
+      ],
+      "impact_tier": 2,
+      "description": "Netflix Q3 2026 earnings (after close)",
+      "source": "signalstack.news / earnings calendars"
+    },
+    {
+      "timestamp": "2026-10-21T16:05:00-04:00",
+      "symbol_scope": [
+        "TSLA"
+      ],
+      "impact_tier": 3,
+      "description": "Tesla Q3 2026 earnings (after close; date reported per SEC filing, some sources unconfirmed)",
+      "source": "tipranks.com / finance.yahoo.com"
+    },
+    {
+      "timestamp": "2026-10-23T09:45:00-04:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "US October flash PMIs (S&P Global); time approximate",
+      "source": "thriveinmarkets.com"
+    },
+    {
+      "timestamp": "2026-10-28T14:00:00-04:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "FOMC rate decision (meeting Oct 27-28; press conference 14:30 ET)",
+      "source": "fedratecalc.com / financecalendar.com"
+    },
+    {
+      "timestamp": "2026-11-06T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "US Employment Situation (NFP), October data",
+      "source": "bls.gov schedule / financecalendar.com"
+    }
+  ],
+  "fetch_errors": [
+    "No scheduled CPI in window: Sep CPI released 2026-10-14; Oct CPI due 2026-11-10 (unverified vs BLS)",
+    "No verified crypto catalysts (token unlocks/upgrades) found; state/crypto_events.json not populated",
+    "Intel Q3 earnings reported 2026-10-29 by one source (outside week); Oct 22 high-impact US event not identified"
+  ]
+}
