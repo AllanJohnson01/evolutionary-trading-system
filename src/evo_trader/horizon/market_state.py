@@ -1,5 +1,5 @@
 """
-Market state adapter — Alpaca bars/position → the causal-entropic-optionality
+Market state adapter — bars/position → the causal-entropic-optionality
 skill's candidate-action and rollout vocabulary. Deliberately carries no
 predictive, fundamental, or technical-indicator features: only OHLCV, which
 is what's needed to define reachable future price paths.
@@ -9,8 +9,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from typing import Protocol
 
-from evo_trader.horizon.alpaca_client import AlpacaPaperClient, Bar
+from evo_trader.horizon.alpaca_client import Bar
+
+
+class BarsProvider(Protocol):
+    """Duck-typed interface for any client that can supply recent bars.
+
+    Both ``AlpacaPaperClient`` and ``YFinanceBarsClient`` satisfy this
+    protocol without explicit registration — structural subtyping only.
+    """
+
+    def get_recent_bars(self, symbol: str, limit: int) -> list[Bar]:
+        ...
 
 
 class Candidate(str, Enum):
@@ -42,7 +54,7 @@ class MarketState:
 
 
 def fetch_market_state(
-    client: AlpacaPaperClient,
+    client: BarsProvider,
     symbol: str,
     lookback_bars: int,
     has_open_position: bool,
@@ -51,9 +63,9 @@ def fetch_market_state(
     """Build a MarketState for ``symbol`` from the client's recent bars.
 
     Raises:
-        AlpacaClientError: Propagated from ``client`` on any fetch failure.
-            Callers must not catch-and-continue here; the decision loop
-            decides what to do on failure.
+        AlpacaClientError or YFinanceBarsError: Propagated from ``client`` on
+            any fetch failure.  Callers must not catch-and-continue here; the
+            decision loop decides what to do on failure.
     """
     bars = client.get_recent_bars(symbol, limit=lookback_bars)
     return MarketState(
