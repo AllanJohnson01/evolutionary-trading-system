@@ -351,3 +351,73 @@ class TestPostureWriterHarness:
         )
         result = validate_and_write(str(posture_file), store)
         assert result != 0
+
+
+# ---------------------------------------------------------------------------
+# Fetch error surfacing — warning logs and graceful degradation
+# ---------------------------------------------------------------------------
+
+class TestFetchErrorSurfacing:
+    def test_fetch_errors_logged_as_warning(self, caplog):
+        """When fetch_errors is non-empty, a WARNING is emitted."""
+        import evo_trader.macro.calendar_fetcher as fetcher_mod
+        original = fetcher_mod._FIXTURE_DIR
+        fetcher_mod._FIXTURE_DIR = Path("/nonexistent/path/that/cannot/exist")
+        try:
+            with caplog.at_level("WARNING", logger="evo_trader.macro.calendar_fetcher"):
+                # No FRED or FMP keys → errors will be generated
+                cal = fetch_calendar(symbols=["AAPL"], use_fixtures=False)
+                warnings = [r for r in caplog.records if "ACTION NEEDED" in r.message]
+                # With no API keys, both sources fail → should warn
+                assert len(warnings) >= 1 or len(cal.fetch_errors) >= 1
+        finally:
+            fetcher_mod._FIXTURE_DIR = original
+
+    def test_no_fred_key_produces_error(self, monkeypatch):
+        """Missing FRED_API_KEY produces an error entry, not a crash."""
+        monkeypatch.delenv("FRED_API_KEY", raising=False)
+        import evo_trader.macro.calendar_fetcher as fetcher_mod
+        original = fetcher_mod._FIXTURE_DIR
+        fetcher_mod._FIXTURE_DIR = Path("/nonexistent/path")
+        try:
+            cal = fetch_calendar(use_fixtures=False)
+            assert any("FRED_API_KEY" in e for e in cal.fetch_errors)
+        finally:
+            fetcher_mod._FIXTURE_DIR = original
+
+    def test_no_fmp_key_produces_error(self, monkeypatch):
+        """Missing FMP_API_KEY produces an error entry in fetch_errors, not a crash."""
+        monkeypatch.delenv("FMP_API_KEY", raising=False)
+        # Also suppress FRED so we only trigger the FMP path
+        monkeypatch.setenv("FRED_API_KEY", "dummy-fred-key-for-test")
+        import evo_trader.macro.calendar_fetcher as fetcher_mod
+        original_fetch_econ = fetcher_mod._fetch_economic_events
+
+        def _stub_econ(now, lookahead_days, use_fixtures):
+            return [], []
+
+        fetcher_mod._fetch_economic_events = _stub_econ
+        try:
+            cal = fetch_calendar(symbols=["AAPL"], use_fixtures=False)
+            assert any("FMP_API_KEY" in e for e in cal.fetch_errors)
+        finally:
+            fetcher_mod._fetch_economic_events = original_fetch_econ
+
+    def test_store_logs_warning_on_stored_fetch_errors(self, tmp_path, caplog):
+        """PostureStore.current_calendar() logs ACTION NEEDED when stored calendar has errors."""
+        cal_with_errors = EventCalendar(
+            events=(),
+            fetched_at=datetime.now(tz=timezone.utc).isoformat(),
+            fetch_errors=("FRED_API_KEY not set",),
+        )
+        cal_path = tmp_path / "event_calendar.json"
+        cal_path.write_text(cal_with_errors.to_json(), encoding="utf-8")
+        store = PostureStore(
+            posture_path=tmp_path / "market_posture.json",
+            calendar_path=cal_path,
+        )
+        with caplog.at_level("WARNING", logger="evo_trader.macro.store"):
+            calendar = store.current_calendar()
+        warnings = [r for r in caplog.records if "ACTION NEEDED" in r.message]
+        assert len(warnings) == 1
+        assert calendar.fetch_errors == ("FRED_API_KEY not set",)

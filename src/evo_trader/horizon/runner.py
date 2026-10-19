@@ -25,6 +25,7 @@ from pathlib import Path
 
 from evo_trader.horizon.agent import HorizonAgent
 from evo_trader.horizon.alpaca_client import AlpacaPaperClient
+from evo_trader.horizon._yfinance_client import YFinanceBarsClient
 from evo_trader.horizon.config import HorizonConfig
 from evo_trader.horizon.market_state import Candidate
 
@@ -50,21 +51,26 @@ def _run_once(log_path: Path, tuning_log_path: Path) -> None:
 
     if not api_key or not secret_key:
         print(
-            "ALPACA_API_KEY and ALPACA_SECRET_KEY must be set in the environment.",
+            "ALPACA_API_KEY and ALPACA_SECRET_KEY must be set in the environment"
+            " (needed for order execution).",
             file=sys.stderr,
         )
         sys.exit(1)
 
     symbol = os.environ.get("HORIZON_SYMBOL", _DEFAULT_SYMBOL)
 
-    client = AlpacaPaperClient(api_key=api_key, api_secret=secret_key)
+    # AlpacaPaperClient: order execution only (submit_order).
+    # YFinanceBarsClient: market data (get_recent_bars) — no API key required.
+    order_client = AlpacaPaperClient(api_key=api_key, api_secret=secret_key)
+    bars_client = YFinanceBarsClient()
     cfg = HorizonConfig()
 
     agent = HorizonAgent(
-        client=client,
+        client=order_client,
         cfg=cfg,
         symbol=symbol,
         tuning_log_path=tuning_log_path,
+        bars_client=bars_client,
     )
 
     logger.info("Starting Horizon decision tick for symbol=%s", symbol)

@@ -619,20 +619,19 @@ def _main() -> None:
 
     try:
         from evo_trader.tactical._alpaca_clients import (  # type: ignore[import]
-            AlpacaBarsClient,
             AlpacaOrderClient,
         )
+        from evo_trader.tactical._yfinance_client import YFinanceBarsClient
 
         if not alpaca_key or not alpaca_secret:
             raise EnvironmentError(
-                "ALPACA_API_KEY and ALPACA_SECRET_KEY environment variables are required."
+                "ALPACA_API_KEY and ALPACA_SECRET_KEY environment variables are required"
+                " for order execution."
             )
 
-        bars_client: BarsClient = AlpacaBarsClient(
-            api_key=alpaca_key,
-            secret_key=alpaca_secret,
-            base_url=alpaca_base_url,
-        )
+        # Market data: yfinance (free, no API key needed).
+        bars_client: BarsClient = YFinanceBarsClient()
+        # Order execution: Alpaca (still requires credentials).
         order_client: OrderClient = AlpacaOrderClient(
             api_key=alpaca_key,
             secret_key=alpaca_secret,

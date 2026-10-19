@@ -96,10 +96,18 @@ class PostureStore:
             return EventCalendar.empty(fetched_at=now_str)
 
         try:
-            return EventCalendar.from_dict(raw)
+            calendar = EventCalendar.from_dict(raw)
         except Exception as exc:
             logger.error("Failed to parse event_calendar.json: %s — returning empty", exc)
             return EventCalendar.empty(fetched_at=now_str)
+
+        if calendar.fetch_errors:
+            logger.warning(
+                "ACTION NEEDED — stored calendar has %d fetch error(s): %s",
+                len(calendar.fetch_errors),
+                "; ".join(calendar.fetch_errors),
+            )
+        return calendar
 
     # ------------------------------------------------------------------
     # Public write API (posture writer harness)

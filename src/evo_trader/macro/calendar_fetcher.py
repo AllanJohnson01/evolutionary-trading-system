@@ -2,10 +2,15 @@
 Calendar fetcher — pulls upcoming FOMC/CPI/NFP dates and earnings.
 
 Sources:
-- Economic events (FOMC, CPI, NFP): scraped from stooq.com/db/is/ which
-  provides a plain-text economic calendar without authentication.
-- Earnings: fetched from financialmodelingprep.com free tier (no key needed
-  for the earnings calendar endpoint on a short lookahead).
+- Economic events (FOMC, CPI, NFP): fetched from FRED (Federal Reserve
+  Economic Data) API at api.stlouisfed.org.  Requires env var
+  ``FRED_API_KEY`` (free registration at fred.stlouisfed.org).
+- Earnings: fetched from financialmodelingprep.com free tier.  Requires env
+  var ``FMP_API_KEY`` (free registration at financialmodelingprep.com).
+  NOTE: Nasdaq's free public endpoint (api.nasdaq.com/api/calendar/earnings)
+  was evaluated as an alternative; it has no auth requirement but returns a
+  different schema and is rate-limited without a key.  FMP + API key is
+  retained as the primary source because the FMP free tier is more stable.
 - Crypto catalyst events: merged from a manually-maintained
   ``state/crypto_events.json`` file (user-managed; missing file is graceful).
 
@@ -19,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta, timezone
@@ -90,21 +96,45 @@ def fetch_calendar(
     events.extend(crypto_events)
     errors.extend(crypto_errors)
 
-    return EventCalendar(
+    calendar = EventCalendar(
         events=tuple(events),
         fetched_at=fetched_at,
         fetch_errors=tuple(errors),
     )
+    if errors:
+        logger.warning(
+            "ACTION NEEDED — calendar fetch errors (%d): %s",
+            len(errors),
+            "; ".join(errors),
+        )
+    return calendar
 
 
 # ---------------------------------------------------------------------------
-# Economic events (FOMC, CPI, NFP) — stooq.com/db/is/
+# Economic events (FOMC, CPI, NFP) — FRED API (api.stlouisfed.org)
 # ---------------------------------------------------------------------------
 
 _STOOQ_ECON_FIXTURE = "stooq_econ.json"
 
 _HIGH_IMPACT_KEYWORDS = {"fomc", "federal", "cpi", "pce", "nfp", "payroll", "gdp", "rate decision"}
 _MEDIUM_IMPACT_KEYWORDS = {"pmi", "ism", "retail sales", "jolts", "claims", "housing"}
+
+# FRED release/dates endpoint — one request per release ID.
+_FRED_RELEASE_DATES_URL = (
+    "https://api.stlouisfed.org/fred/release/dates"
+    "?release_id={release_id}&api_key={api_key}"
+    "&realtime_start={from_date}&realtime_end={to_date}&file_type=json"
+)
+
+# Key FRED release IDs with their human-readable names and impact tiers.
+_FRED_RELEASES = [
+    (10, "CPI", ImpactTier.HIGH),
+    (50, "Nonfarm Payrolls (NFP)", ImpactTier.HIGH),
+    (22, "FOMC Rate Decision", ImpactTier.HIGH),
+    (18, "FOMC Minutes", ImpactTier.HIGH),
+    (21, "GDP", ImpactTier.HIGH),
+    (46, "PCE", ImpactTier.HIGH),
+]
 
 
 def _fetch_economic_events(
@@ -124,14 +154,47 @@ def _fetch_economic_events(
             return events, errors
         return _parse_stooq_fixture(raw, now, lookahead_days), errors
 
-    # Live fetch from stooq economic calendar (public, no auth)
-    url = "https://stooq.com/db/is/"
-    try:
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
-        events = _parse_stooq_html(html, now, lookahead_days)
-    except (urllib.error.URLError, OSError, Exception) as exc:
-        errors.append(f"econ calendar fetch error: {exc}")
+    # Live fetch from FRED — requires FRED_API_KEY env var (free registration).
+    fred_api_key = os.environ.get("FRED_API_KEY", "")
+    if not fred_api_key:
+        errors.append("econ calendar: FRED_API_KEY not set")
+        return events, errors
+
+    from_date = now.strftime("%Y-%m-%d")
+    to_date = (now + timedelta(days=lookahead_days)).strftime("%Y-%m-%d")
+
+    for release_id, release_name, impact_tier in _FRED_RELEASES:
+        url = _FRED_RELEASE_DATES_URL.format(
+            release_id=release_id,
+            api_key=fred_api_key,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        try:
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            # FRED response: {"release_dates": [{"release_id": 10, "date": "2026-10-15"}, ...]}
+            for entry in data.get("release_dates", []):
+                date_str = str(entry.get("date", ""))
+                if not date_str:
+                    continue
+                try:
+                    ts = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+                except ValueError:
+                    continue
+                if ts < now or ts > now + timedelta(days=lookahead_days):
+                    continue
+                events.append(
+                    CalendarEvent(
+                        timestamp=ts.isoformat(),
+                        symbol_scope=(),
+                        impact_tier=impact_tier,
+                        description=release_name,
+                        source="fred.stlouisfed.org",
+                    )
+                )
+        except (urllib.error.URLError, OSError, json.JSONDecodeError, Exception) as exc:
+            errors.append(f"econ calendar fetch error ({release_name}): {exc}")
 
     return events, errors
 
@@ -240,9 +303,18 @@ def _fetch_earnings_events(
             return events, errors
         return _parse_fmp_earnings(data, symbols, now, lookahead_days), errors
 
+    # FMP free tier covers earning_calendar with an API key.
+    # NOTE: Nasdaq's public endpoint (api.nasdaq.com/api/calendar/earnings) was
+    # considered as a key-free alternative but uses a different schema and is
+    # less reliable without auth; FMP + key is retained as the primary source.
+    fmp_api_key = os.environ.get("FMP_API_KEY", "")
+    if not fmp_api_key:
+        errors.append("earnings calendar: FMP_API_KEY not set — skipping live fetch")
+        return events, errors
+
     from_date = now.strftime("%Y-%m-%d")
     to_date = (now + timedelta(days=lookahead_days)).strftime("%Y-%m-%d")
-    url = _FMP_EARNINGS_URL.format(from_date=from_date, to_date=to_date)
+    url = _FMP_EARNINGS_URL.format(from_date=from_date, to_date=to_date) + f"&apikey={fmp_api_key}"
     try:
         with urllib.request.urlopen(url, timeout=10) as resp:
             data = json.loads(resp.read().decode("utf-8"))
