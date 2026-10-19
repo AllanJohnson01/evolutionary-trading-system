@@ -421,3 +421,38 @@ class TestFetchErrorSurfacing:
         warnings = [r for r in caplog.records if "ACTION NEEDED" in r.message]
         assert len(warnings) == 1
         assert calendar.fetch_errors == ("FRED_API_KEY not set",)
+
+
+# ---------------------------------------------------------------------------
+# Live integration test — skipped unless both API keys are present
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    not (os.environ.get("FRED_API_KEY") and os.environ.get("FMP_API_KEY")),
+    reason="Requires FRED_API_KEY and FMP_API_KEY env vars (live network)",
+)
+def test_live_fetch_returns_future_events():
+    """
+    Live smoke test: fetch_calendar() must return at least one genuinely future
+    event and must not surface any fetch errors when both API keys are present.
+
+    Run with:  FRED_API_KEY=<key> FMP_API_KEY=<key> pytest -m integration
+    """
+    from datetime import datetime, timezone
+
+    cal = fetch_calendar(symbols=["AAPL", "MSFT"], lookahead_days=60, use_fixtures=False)
+
+    now = datetime.now(tz=timezone.utc)
+    future_events = [
+        e for e in cal.events
+        if datetime.fromisoformat(e.timestamp) > now
+    ]
+
+    assert len(future_events) >= 1, (
+        f"Expected at least one future event; got {len(cal.events)} total. "
+        f"fetch_errors: {cal.fetch_errors}"
+    )
+    assert cal.fetch_errors == (), (
+        f"Expected no fetch errors; got: {cal.fetch_errors}"
+    )
