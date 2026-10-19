@@ -1,36 +1,81 @@
 {
-  "fetched_at": "2026-10-15T19:40:20.192861+00:00",
+  "fetched_at": "2026-10-18T22:01:04.135459+00:00",
   "events": [
     {
-      "timestamp": "2026-10-20T16:05:00-04:00",
+      "timestamp": "2026-10-20T08:30:00-04:00",
+      "symbol_scope": [
+        "GM",
+        "RTX",
+        "GE"
+      ],
+      "impact_tier": 1,
+      "description": "GM, RTX, GE Aerospace Q3 earnings (before open)",
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
+    },
+    {
+      "timestamp": "2026-10-20T16:01:00-04:00",
       "symbol_scope": [
         "NFLX"
       ],
       "impact_tier": 2,
       "description": "Netflix Q3 2026 earnings (after close)",
-      "source": "signalstack.news / earnings calendars"
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
     },
     {
-      "timestamp": "2026-10-21T16:05:00-04:00",
+      "timestamp": "2026-10-21T08:30:00-04:00",
       "symbol_scope": [
-        "TSLA"
+        "T"
       ],
-      "impact_tier": 3,
-      "description": "Tesla Q3 2026 earnings (after close; date reported per SEC filing, some sources unconfirmed)",
-      "source": "tipranks.com / finance.yahoo.com"
+      "impact_tier": 1,
+      "description": "AT&T Q3 earnings (before open)",
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
     },
     {
-      "timestamp": "2026-10-23T09:45:00-04:00",
-      "symbol_scope": [],
+      "timestamp": "2026-10-21T16:30:00-04:00",
+      "symbol_scope": [
+        "META",
+        "TXN"
+      ],
       "impact_tier": 2,
-      "description": "US October flash PMIs (S&P Global); time approximate",
-      "source": "thriveinmarkets.com"
+      "description": "Meta and Texas Instruments Q3 earnings (after close)",
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
+    },
+    {
+      "timestamp": "2026-10-21T17:00:00-04:00",
+      "symbol_scope": [
+        "TSLA",
+        "IBM",
+        "LRCX"
+      ],
+      "impact_tier": 2,
+      "description": "Tesla (webcast 17:30), IBM, Lam Research Q3 earnings (after close)",
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
+    },
+    {
+      "timestamp": "2026-10-22T08:30:00-04:00",
+      "symbol_scope": [
+        "PG",
+        "LMT",
+        "CMCSA"
+      ],
+      "impact_tier": 1,
+      "description": "P&G, Lockheed Martin, Comcast earnings (before open); weekly jobless claims same time (~200k est.)",
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
+    },
+    {
+      "timestamp": "2026-10-23T08:30:00-04:00",
+      "symbol_scope": [
+        "AXP"
+      ],
+      "impact_tier": 1,
+      "description": "American Express Q3 earnings (before open)",
+      "source": "stocktitan.net / newsquawk.com weekly calendar"
     },
     {
       "timestamp": "2026-10-28T14:00:00-04:00",
       "symbol_scope": [],
       "impact_tier": 3,
-      "description": "FOMC rate decision (meeting Oct 27-28; press conference 14:30 ET)",
+      "description": "FOMC rate decision (meeting Oct 27-28; presser 14:30 ET); Fed quiet period in effect",
       "source": "fedratecalc.com / financecalendar.com"
     },
     {
@@ -42,8 +87,8 @@
     }
   ],
   "fetch_errors": [
-    "No scheduled CPI in window: Sep CPI released 2026-10-14; Oct CPI due 2026-11-10 (unverified vs BLS)",
-    "No verified crypto catalysts (token unlocks/upgrades) found; state/crypto_events.json not populated",
-    "Intel Q3 earnings reported 2026-10-29 by one source (outside week); Oct 22 high-impact US event not identified"
+    "No FOMC, CPI or NFP inside Oct 19-23; FOMC Oct 28 and NFP Nov 6 included as look-ahead; Oct CPI due ~2026-11-10 (unverified vs BLS)",
+    "No verified crypto catalysts (token unlocks/upgrades) found for the week; search returned only older items",
+    "Earnings times from secondary sources; confirm before trading"
   ]
 }
