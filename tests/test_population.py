@@ -29,7 +29,7 @@ class _FlatBars:
 
 
 class _NoOrders:
-    def submit_order(self, symbol, direction, notional):
+    def submit_order(self, symbol, direction, notional, *, strategy_id=None):
         raise AssertionError("no orders expected")
 
     def get_open_positions(self, strategy_id):
@@ -89,3 +89,81 @@ def test_launchd_templates_do_not_use_unexpanded_home():
     # launchd does not expand ${HOME} in StandardOutPath / StandardErrorPath.
     for plist in (REPO_ROOT / "ops" / "launchd").glob("*.plist"):
         assert "${HOME}" not in plist.read_text(), f"{plist.name} uses ${{HOME}}"
+
+
+# ---------------------------------------------------------------------------
+# Stable identity tests
+# ---------------------------------------------------------------------------
+
+
+def test_init_population_with_stable_ids_reuses_them():
+    pm = PortfolioManager()
+    cfg = CapitalConfig()
+    stable = {
+        "Momentum-Hunter": "aaa-111",
+        "Breakout": "bbb-222",
+        "Grid-Trader": "ccc-333",
+        "Mean-Reversion": "ddd-444",
+    }
+    agents = init_population(pm, cfg, stable_ids=stable)
+    ids = {a.agent_id for a in agents}
+    assert ids == set(stable.values()), "stable IDs not reused across restart"
+
+
+def test_init_population_without_stable_ids_mints_new_uuids():
+    pm = PortfolioManager()
+    cfg = CapitalConfig()
+    agents1 = init_population(pm, cfg, stable_ids=None)
+    pm2 = PortfolioManager()
+    agents2 = init_population(pm2, cfg, stable_ids=None)
+    ids1 = {a.agent_id for a in agents1}
+    ids2 = {a.agent_id for a in agents2}
+    assert ids1.isdisjoint(ids2), "fresh runs without stable_ids must mint distinct UUIDs"
+
+
+def test_strategy_ids_are_stable_across_restarts(tmp_path):
+    """Restarting with the same stable_ids produces the same strategy_ids in decisions.jsonl."""
+    stable = {
+        "Momentum-Hunter": "aaa-111",
+        "Breakout": "bbb-222",
+        "Grid-Trader": "ccc-333",
+        "Mean-Reversion": "ddd-444",
+    }
+
+    def _run(log_path):
+        pm = PortfolioManager()
+        agents = init_population(pm, CapitalConfig(), stable_ids=stable)
+        runner, _ = _runner(tmp_path)  # builds a fresh runner with _FlatBars / _NoOrders
+        # Re-wire to use the stable-id agents
+        from evo_trader.macro.store import PostureStore
+        r = runner.__class__(
+            portfolio_manager=pm,
+            posture_store=PostureStore(),
+            bars_client=_FlatBars(),
+            order_client=_NoOrders(),
+            log_path=log_path,
+        )
+        register_starting_strategies(r, agents, "SPY")
+        r.run_once()
+        return log_path
+
+    import json
+    log1 = _run(tmp_path / "run1.jsonl")
+    log2 = _run(tmp_path / "run2.jsonl")
+
+    sids1 = {json.loads(l)["strategy_id"] for l in log1.read_text().splitlines() if l.strip()}
+    sids2 = {json.loads(l)["strategy_id"] for l in log2.read_text().splitlines() if l.strip()}
+    assert sids1 == sids2, "strategy_ids differ across restarts with same stable_ids"
+
+
+def test_decisions_log_includes_agent_id(tmp_path):
+    """Every decision log entry must carry the stable agent_id field."""
+    import json
+    runner, agents = _runner(tmp_path)
+    register_starting_strategies(runner, agents, "SPY")
+    runner.run_once()
+
+    for line in (tmp_path / "decisions.jsonl").read_text().strip().splitlines():
+        entry = json.loads(line)
+        assert "agent_id" in entry, "agent_id missing from decision log entry"
+        assert entry["agent_id"], "agent_id is empty in decision log entry"

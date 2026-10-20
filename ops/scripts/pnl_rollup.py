@@ -28,6 +28,7 @@ from evo_trader.reporting.rollup import (  # noqa: E402
     render_report,
     summarize_horizon,
     summarize_tactical,
+    summarize_trade_log,
 )
 
 logger = logging.getLogger("pnl_rollup")
@@ -66,7 +67,8 @@ def main() -> None:
         snap = fetch_account_snapshot(TradingClient(api_key, secret, paper=True))
         tactical = summarize_tactical(read_jsonl(state / "decisions.jsonl"), since)
         horizon = summarize_horizon(read_jsonl(state / "horizon_decisions.jsonl"), since)
-        report = render_report(label, now, snap, tactical, horizon)
+        trade_stats = summarize_trade_log(read_jsonl(state / "trade_log.jsonl"), since)
+        report = render_report(label, now, snap, tactical, horizon, trade_stats=trade_stats)
     except (RollupError, ValueError) as exc:
         logger.error("Rollup failed: %s", exc)
         sys.exit(1)

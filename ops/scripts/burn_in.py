@@ -40,6 +40,26 @@ from evo_trader.tactical.population import (
     register_starting_strategies,
 )
 
+
+def _load_stable_ids(manifest_path: Path) -> dict[str, str] | None:
+    """Read per-agent stable IDs from an existing population manifest.
+
+    Returns a name→agent_id dict when the manifest exists and contains them,
+    or None on first run (manifest missing or pre-dates the agent_id field).
+    """
+    if not manifest_path.exists():
+        return None
+    try:
+        data = json.loads(manifest_path.read_text())
+        ids = {
+            a["name"]: a["agent_id"]
+            for a in data.get("agents", [])
+            if "agent_id" in a and "name" in a
+        }
+        return ids if ids else None
+    except (json.JSONDecodeError, KeyError):
+        return None
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -84,9 +104,11 @@ def run_tactical_cycle() -> dict:
     )
 
     pm = PortfolioManager()
-    # Re-register starting agents so the runner's PM knows them
     capital_cfg = CapitalConfig()
-    agents = init_population(pm, capital_cfg)
+    # Reload stable IDs so strategy_id in decisions.jsonl is consistent across runs.
+    manifest_path = _REPO_ROOT / "state" / "population.json"
+    stable_ids = _load_stable_ids(manifest_path)
+    agents = init_population(pm, capital_cfg, stable_ids=stable_ids)
 
     posture_store = PostureStore()
     log_path = _REPO_ROOT / "state" / "decisions.jsonl"
@@ -167,12 +189,22 @@ def main() -> None:
     logger.info("--- Step 1: Initialising paper population ---")
     capital_cfg = CapitalConfig()
     pm = PortfolioManager()
-    agents = init_population(pm, capital_cfg)
-    logger.info("Population: %d agents, $%s active trading capital", len(agents), capital_cfg.active_trading_total)
 
-    # Persist population manifest
     manifest_path = _REPO_ROOT / "state" / "population.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Reload stable IDs if manifest already has them (subsequent runs preserve identity).
+    stable_ids = _load_stable_ids(manifest_path)
+    if stable_ids:
+        logger.info("Reloading stable agent IDs from %s", manifest_path)
+    else:
+        logger.info("First run — minting new stable agent IDs")
+
+    agents = init_population(pm, capital_cfg, stable_ids=stable_ids)
+    logger.info("Population: %d agents, $%s active trading capital", len(agents), capital_cfg.active_trading_total)
+
+    # Persist population manifest (includes agent_id so restarts reuse the same identity).
+    agent_by_name = {name: agent for agent, (name, _, _) in zip(agents, STARTING_AGENTS)}
     manifest = {
         "initialized_at": datetime.now(timezone.utc).isoformat(),
         "capital_config": {
@@ -183,6 +215,7 @@ def main() -> None:
         "agents": [
             {
                 "name": name,
+                "agent_id": agent_by_name[name].agent_id,
                 "agent_type": atype.value,
                 "allocated_capital": str(capital_cfg.initial_agent_allocation),
             }

@@ -10,12 +10,14 @@ import pytest
 
 from evo_trader.reporting.rollup import (
     AccountSnapshot,
+    AgentTradeStats,
     RollupError,
     fetch_account_snapshot,
     read_jsonl,
     render_report,
     summarize_horizon,
     summarize_tactical,
+    summarize_trade_log,
 )
 
 NOW = datetime(2026, 10, 15, 20, 0, tzinfo=timezone.utc)
@@ -161,8 +163,8 @@ def test_render_report_labels_pnl_as_unrealized_and_lists_gaps():
     assert "SPY" in text and "120.25" in text
     assert "grid_1" in text
     assert "HOLD" in text
-    # honest about what is not tracked yet
-    assert "realized" in text.lower() and "not tracked" in text.lower()
+    # report has a realized P&L section
+    assert "realized" in text.lower()
 
 
 def test_render_report_with_no_positions_or_activity():
@@ -174,3 +176,90 @@ def test_render_report_with_no_positions_or_activity():
     assert "No open positions" in text
     assert "No tactical activity" in text
     assert "No Horizon ticks" in text
+
+
+# ---------------------------------------------------------------------------
+# Trade log summarization
+# ---------------------------------------------------------------------------
+
+
+def _trade(agent_id, pnl, hours_ago=1):
+    return {
+        "timestamp": _ts(hours_ago),
+        "agent_id": agent_id,
+        "strategy_id": f"strategy_{agent_id[:4]}",
+        "symbol": "SPY",
+        "side": "long",
+        "entry_price": "100.00",
+        "exit_price": str(Decimal("100.00") + Decimal(pnl)),
+        "entry_time": _ts(hours_ago + 1),
+        "exit_time": _ts(hours_ago),
+        "size": "10",
+        "realized_pnl": str(pnl),
+        "exit_reason": "take_profit",
+    }
+
+
+def test_summarize_trade_log_sums_pnl_and_counts_wins():
+    entries = [
+        _trade("agent-aaa", "50.00"),
+        _trade("agent-aaa", "-25.00"),
+        _trade("agent-bbb", "100.00"),
+        _trade("agent-aaa", "75.00", hours_ago=200),  # outside 24h window
+    ]
+    stats = summarize_trade_log(entries, since=NOW - timedelta(hours=24))
+
+    assert "agent-aaa" in stats
+    assert stats["agent-aaa"].trade_count == 2
+    assert stats["agent-aaa"].wins == 1
+    assert stats["agent-aaa"].realized_pnl == Decimal("25.00")
+    assert stats["agent-bbb"].trade_count == 1
+    assert stats["agent-bbb"].wins == 1
+    assert stats["agent-bbb"].realized_pnl == Decimal("100.00")
+
+
+def test_summarize_trade_log_win_rate():
+    entries = [
+        _trade("a", "10"),
+        _trade("a", "20"),
+        _trade("a", "-5"),
+        _trade("a", "-15"),
+    ]
+    stats = summarize_trade_log(entries, since=NOW - timedelta(hours=24))
+    assert stats["a"].win_rate == Decimal("2") / Decimal("4")
+
+
+def test_summarize_trade_log_empty_returns_empty():
+    assert summarize_trade_log([], since=NOW - timedelta(days=1)) == {}
+
+
+def test_summarize_trade_log_missing_agent_id_skipped():
+    entries = [{"timestamp": _ts(1), "realized_pnl": "50", "symbol": "SPY"}]
+    assert summarize_trade_log(entries, since=NOW - timedelta(hours=24)) == {}
+
+
+def test_summarize_trade_log_bad_pnl_skipped():
+    entries = [{"timestamp": _ts(1), "agent_id": "a", "realized_pnl": "not_a_number"}]
+    assert summarize_trade_log(entries, since=NOW - timedelta(hours=24)) == {}
+
+
+def test_render_report_shows_realized_pnl_per_agent():
+    snap = AccountSnapshot(
+        equity=Decimal("100000"), last_equity=Decimal("100000"),
+        cash=Decimal("100000"), buying_power=Decimal("200000"), positions=[],
+    )
+    stats = {"agent-aaa": AgentTradeStats(agent_id="agent-aaa", trade_count=3, wins=2, realized_pnl=Decimal("150.00"))}
+    text = render_report("daily", NOW, snap, {}, {}, trade_stats=stats)
+    assert "agent-aaa" in text
+    assert "150.00" in text
+    assert "3 trades" in text
+    assert "66.7%" in text
+
+
+def test_render_report_no_closed_trades_says_so():
+    snap = AccountSnapshot(
+        equity=Decimal("100000"), last_equity=Decimal("100000"),
+        cash=Decimal("100000"), buying_power=Decimal("200000"), positions=[],
+    )
+    text = render_report("daily", NOW, snap, {}, {}, trade_stats={})
+    assert "No closed trades this window" in text
