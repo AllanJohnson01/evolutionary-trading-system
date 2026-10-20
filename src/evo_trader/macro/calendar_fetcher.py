@@ -120,17 +120,23 @@ _HIGH_IMPACT_KEYWORDS = {"fomc", "federal", "cpi", "pce", "nfp", "payroll", "gdp
 _MEDIUM_IMPACT_KEYWORDS = {"pmi", "ism", "retail sales", "jolts", "claims", "housing"}
 
 # FRED release/dates endpoint — one request per release ID.
+# include_release_dates_with_no_data=true is required: without it FRED only
+# returns already-released dates and silently omits all future dates.
 _FRED_RELEASE_DATES_URL = (
     "https://api.stlouisfed.org/fred/release/dates"
     "?release_id={release_id}&api_key={api_key}"
-    "&realtime_start={from_date}&realtime_end={to_date}&file_type=json"
+    "&realtime_start={from_date}&realtime_end={to_date}"
+    "&include_release_dates_with_no_data=true&file_type=json"
 )
 
 # Key FRED release IDs with their human-readable names and impact tiers.
+# Release 392 = "FOMC Statement" (rate decisions, ~8x/year).
+# Release 22 was previously used but is "H.15 Selected Interest Rates" (weekly)
+# — wrong series entirely; replaced with 392.
 _FRED_RELEASES = [
     (10, "CPI", ImpactTier.HIGH),
     (50, "Nonfarm Payrolls (NFP)", ImpactTier.HIGH),
-    (22, "FOMC Rate Decision", ImpactTier.HIGH),
+    (392, "FOMC Rate Decision", ImpactTier.HIGH),
     (18, "FOMC Minutes", ImpactTier.HIGH),
     (21, "GDP", ImpactTier.HIGH),
     (46, "PCE", ImpactTier.HIGH),
@@ -277,8 +283,10 @@ def _parse_stooq_html(html: str, now: datetime, lookahead_days: int) -> list[Cal
 # ---------------------------------------------------------------------------
 
 _EARNINGS_FIXTURE = "fmp_earnings.json"
+# /api/v3/earning_calendar returns HTTP 403 as of Aug 2025 (legacy endpoint).
+# /stable/earnings-calendar is the current endpoint; same response schema.
 _FMP_EARNINGS_URL = (
-    "https://financialmodelingprep.com/api/v3/earning_calendar"
+    "https://financialmodelingprep.com/stable/earnings-calendar"
     "?from={from_date}&to={to_date}"
 )
 

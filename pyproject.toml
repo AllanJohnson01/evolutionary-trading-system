@@ -15,3 +15,6 @@ where = ["src"]
 testpaths = ["tests"]
 addopts = "-v"
 pythonpath = ["src"]
+markers = [
+    "integration: live network tests requiring real API keys (skipped in normal CI)",
+]
