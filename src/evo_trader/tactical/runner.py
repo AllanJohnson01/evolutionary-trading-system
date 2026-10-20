@@ -82,6 +82,8 @@ class OrderClient(Protocol):
         symbol: str,
         direction: str,
         notional: Decimal,
+        *,
+        strategy_id: Optional[str] = None,
     ) -> str:
         """Submit a market order.
 
@@ -89,6 +91,8 @@ class OrderClient(Protocol):
             symbol: Tradeable instrument identifier.
             direction: "long" or "short".
             notional: Dollar-notional to deploy.
+            strategy_id: Optional owning strategy ID; used by the Alpaca client
+                to register a local position entry for exit tracking.
 
         Returns:
             Broker-assigned order ID string.
@@ -144,6 +148,7 @@ class _StrategyRegistration:
 def _build_log_entry(
     *,
     strategy_id: str,
+    agent_id: str,
     symbol: str,
     cycle_type: str,
     direction: str,
@@ -163,6 +168,7 @@ def _build_log_entry(
     """Build a single decision-log JSON object."""
     return {
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "agent_id": agent_id,
         "strategy_id": strategy_id,
         "symbol": symbol,
         "cycle_type": cycle_type,
@@ -249,6 +255,9 @@ class StrategyRunner:
             win_rate=win_rate,
             payoff_ratio=payoff_ratio,
         )
+        # Propagate agent_id to the order client so trade log entries carry it.
+        if hasattr(self._order_client, "set_agent_id"):
+            self._order_client.set_agent_id(strategy.strategy_id, agent_id)
         logger.info(
             "Registered strategy %s for agent %s (trades=%d)",
             strategy.strategy_id,
@@ -288,6 +297,7 @@ class StrategyRunner:
                     self._append_log(
                         _build_log_entry(
                             strategy_id=strategy.strategy_id,
+                            agent_id=reg.agent_id,
                             symbol=strategy.symbol,
                             cycle_type="skip",
                             direction="flat",
@@ -325,6 +335,7 @@ class StrategyRunner:
                     self._append_log(
                         _build_log_entry(
                             strategy_id=strategy.strategy_id,
+                            agent_id=reg.agent_id,
                             symbol=position.symbol,
                             cycle_type="exit",
                             direction=position.direction,
@@ -356,6 +367,7 @@ class StrategyRunner:
                 self._append_log(
                     _build_log_entry(
                         strategy_id=strategy.strategy_id,
+                        agent_id=reg.agent_id,
                         symbol=strategy.symbol,
                         cycle_type="skip",
                         direction="flat",
@@ -389,6 +401,7 @@ class StrategyRunner:
                 self._append_log(
                     _build_log_entry(
                         strategy_id=strategy.strategy_id,
+                        agent_id=reg.agent_id,
                         symbol=signal.symbol,
                         cycle_type="entry",
                         direction=signal.direction,
@@ -417,6 +430,7 @@ class StrategyRunner:
                 self._append_log(
                     _build_log_entry(
                         strategy_id=strategy.strategy_id,
+                        agent_id=reg.agent_id,
                         symbol=signal.symbol,
                         cycle_type="entry",
                         direction=signal.direction,
@@ -441,6 +455,7 @@ class StrategyRunner:
                     signal.symbol,
                     signal.direction,
                     pm_decision.approved_notional,
+                    strategy_id=strategy.strategy_id,
                 )
             except Exception as exc:
                 logger.error(
@@ -449,6 +464,7 @@ class StrategyRunner:
                 self._append_log(
                     _build_log_entry(
                         strategy_id=strategy.strategy_id,
+                        agent_id=reg.agent_id,
                         symbol=signal.symbol,
                         cycle_type="entry",
                         direction=signal.direction,
@@ -469,6 +485,7 @@ class StrategyRunner:
             self._append_log(
                 _build_log_entry(
                     strategy_id=strategy.strategy_id,
+                    agent_id=reg.agent_id,
                     symbol=signal.symbol,
                     cycle_type="entry",
                     direction=signal.direction,

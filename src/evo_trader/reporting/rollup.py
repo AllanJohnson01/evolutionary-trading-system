@@ -2,13 +2,10 @@
 Daily / weekly rollup of paper-account P&L and system activity.
 
 Sources, and what each can honestly say:
-  * Alpaca paper account  -> equity, cash, open positions, *unrealized* P&L.
-  * state/decisions.jsonl -> tactical cycle activity per strategy.
+  * Alpaca paper account          -> equity, cash, open positions, *unrealized* P&L.
+  * state/decisions.jsonl         -> tactical cycle activity per strategy (agent_id included).
+  * state/trade_log.jsonl         -> closed-trade outcomes: realized P&L, win/loss per agent.
   * state/horizon_decisions.jsonl -> Horizon tick decisions.
-
-Not tracked yet (no data source exists): realized P&L / win rate per strategy
-and Horizon NAV (its ledger is in-memory only). The report says so explicitly
-rather than implying full strategy performance.
 """
 from __future__ import annotations
 
@@ -17,7 +14,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -58,6 +55,48 @@ class StrategyActivity:
     exits: int = 0
 
 
+@dataclass
+class AgentTradeStats:
+    """Realized P&L and win-rate stats for a single agent from ``trade_log.jsonl``."""
+    agent_id: str
+    trade_count: int = 0
+    wins: int = 0
+    realized_pnl: Decimal = field(default_factory=lambda: Decimal("0"))
+
+    @property
+    def win_rate(self) -> Decimal | None:
+        if self.trade_count == 0:
+            return None
+        return Decimal(self.wins) / Decimal(self.trade_count)
+
+
+def summarize_trade_log(
+    entries: list[dict[str, Any]], since: datetime
+) -> dict[str, AgentTradeStats]:
+    """Aggregate realized P&L and win rate per agent from ``trade_log.jsonl`` entries.
+
+    Returns a dict keyed by ``agent_id``. Entries outside the window or missing
+    ``agent_id`` / ``realized_pnl`` are skipped gracefully.
+    """
+    out: dict[str, AgentTradeStats] = {}
+    for e in entries:
+        ts = _parse_ts(e.get("timestamp"))
+        agent_id = e.get("agent_id")
+        pnl_str = e.get("realized_pnl")
+        if ts is None or ts < since or not agent_id or pnl_str is None:
+            continue
+        try:
+            pnl = Decimal(str(pnl_str))
+        except InvalidOperation:
+            continue
+        stats = out.setdefault(agent_id, AgentTradeStats(agent_id=agent_id))
+        stats.trade_count += 1
+        stats.realized_pnl += pnl
+        if pnl > Decimal("0"):
+            stats.wins += 1
+    return out
+
+
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     """Read a JSONL file, skipping blank/corrupt lines. Missing file -> []."""
     if not path.exists():
@@ -95,7 +134,12 @@ def _strategy_family(strategy_id: str) -> str:
 def summarize_tactical(
     entries: list[dict[str, Any]], since: datetime
 ) -> dict[str, StrategyActivity]:
-    """Count tactical activity per strategy family for entries at or after ``since``."""
+    """Count tactical activity per strategy family for entries at or after ``since``.
+
+    When ``agent_id`` is present on an entry it is carried onto the
+    ``StrategyActivity`` record so the report can associate activity with a
+    stable agent identity.
+    """
     out: dict[str, StrategyActivity] = {}
     for e in entries:
         ts = _parse_ts(e.get("timestamp"))
@@ -162,8 +206,18 @@ def render_report(
     snap: AccountSnapshot,
     tactical: dict[str, StrategyActivity],
     horizon: dict[str, int],
+    trade_stats: dict[str, AgentTradeStats] | None = None,
 ) -> str:
-    """Render a human-readable markdown report."""
+    """Render a human-readable markdown report.
+
+    Args:
+        period: "daily" or "weekly".
+        now: Report timestamp.
+        snap: Alpaca account snapshot.
+        tactical: Per-strategy-family activity from decisions.jsonl.
+        horizon: Horizon tick counts.
+        trade_stats: Optional per-agent realized P&L stats from trade_log.jsonl.
+    """
     lines = [
         f"# {period.capitalize()} rollup — {now:%Y-%m-%d %H:%M} UTC (paper account)",
         "",
@@ -184,6 +238,20 @@ def render_report(
     else:
         lines.append("- No open positions")
 
+    # Realized P&L per agent (from trade_log.jsonl)
+    lines += ["", "## Realized P&L per agent (closed trades)"]
+    if trade_stats:
+        for agent_id, stats in sorted(trade_stats.items()):
+            win_rate_str = (
+                f"{stats.win_rate * 100:.1f}%" if stats.win_rate is not None else "n/a"
+            )
+            lines.append(
+                f"- agent `{agent_id}`: {stats.trade_count} trades · "
+                f"realized {_money(stats.realized_pnl)} · win rate {win_rate_str}"
+            )
+    else:
+        lines.append("- No closed trades this window")
+
     lines += ["", "## Tactical activity"]
     if tactical:
         for sid, a in sorted(tactical.items()):
@@ -203,8 +271,6 @@ def render_report(
     lines += [
         "",
         "## Not tracked yet",
-        "- Realized P&L and win rate per strategy: not tracked (no trade log exists).",
         "- Horizon NAV / drawdown: not tracked (ledger is in-memory only).",
-        "- Tactical strategy exits cannot fire yet (no per-strategy position attribution).",
     ]
     return "\n".join(lines) + "\n"
