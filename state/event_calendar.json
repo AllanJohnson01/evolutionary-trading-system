@@ -1,94 +1,146 @@
 {
-  "fetched_at": "2026-10-18T22:01:04.135459+00:00",
+  "fetched_at": "2026-10-25T22:01:24.877630+00:00",
   "events": [
     {
-      "timestamp": "2026-10-20T08:30:00-04:00",
+      "timestamp": "2026-10-26T08:30:00-04:00",
       "symbol_scope": [
-        "GM",
-        "RTX",
-        "GE"
-      ],
-      "impact_tier": 1,
-      "description": "GM, RTX, GE Aerospace Q3 earnings (before open)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
-    },
-    {
-      "timestamp": "2026-10-20T16:01:00-04:00",
-      "symbol_scope": [
-        "NFLX"
+        "VZ"
       ],
       "impact_tier": 2,
-      "description": "Netflix Q3 2026 earnings (after close)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
+      "description": "Verizon Q3 earnings (before open)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
     },
     {
-      "timestamp": "2026-10-21T08:30:00-04:00",
+      "timestamp": "2026-10-26T16:05:00-04:00",
       "symbol_scope": [
-        "T"
+        "CDNS"
       ],
       "impact_tier": 1,
-      "description": "AT&T Q3 earnings (before open)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
+      "description": "Cadence Design Q3 earnings (after close)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
     },
     {
-      "timestamp": "2026-10-21T16:30:00-04:00",
+      "timestamp": "2026-10-27T08:30:00-04:00",
       "symbol_scope": [
-        "META",
-        "TXN"
+        "KO",
+        "BA",
+        "UPS",
+        "PYPL"
       ],
       "impact_tier": 2,
-      "description": "Meta and Texas Instruments Q3 earnings (after close)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
+      "description": "Coca-Cola, Boeing, UPS, PayPal(expected) Q3 earnings (before open)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
     },
     {
-      "timestamp": "2026-10-21T17:00:00-04:00",
+      "timestamp": "2026-10-27T16:05:00-04:00",
       "symbol_scope": [
-        "TSLA",
-        "IBM",
-        "LRCX"
+        "V",
+        "HOOD",
+        "NXPI",
+        "STX"
       ],
       "impact_tier": 2,
-      "description": "Tesla (webcast 17:30), IBM, Lam Research Q3 earnings (after close)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
+      "description": "Visa, Robinhood, NXP, Seagate Q3 earnings (after close)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
     },
     {
-      "timestamp": "2026-10-22T08:30:00-04:00",
+      "timestamp": "2026-10-28T08:30:00-04:00",
       "symbol_scope": [
-        "PG",
-        "LMT",
-        "CMCSA"
+        "GEV",
+        "ADP",
+        "BSX",
+        "VRT"
       ],
       "impact_tier": 1,
-      "description": "P&G, Lockheed Martin, Comcast earnings (before open); weekly jobless claims same time (~200k est.)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
-    },
-    {
-      "timestamp": "2026-10-23T08:30:00-04:00",
-      "symbol_scope": [
-        "AXP"
-      ],
-      "impact_tier": 1,
-      "description": "American Express Q3 earnings (before open)",
-      "source": "stocktitan.net / newsquawk.com weekly calendar"
+      "description": "GE Vernova, ADP, Boston Scientific, Vertiv Q3 earnings (before open)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
     },
     {
       "timestamp": "2026-10-28T14:00:00-04:00",
       "symbol_scope": [],
       "impact_tier": 3,
-      "description": "FOMC rate decision (meeting Oct 27-28; presser 14:30 ET); Fed quiet period in effect",
-      "source": "fedratecalc.com / financecalendar.com"
+      "description": "FOMC rate decision (presser 14:30 ET); consensus hold at 3.75-4.00% (Reuters poll); ~9% futures odds of hike. Sources disagree on chair name (Warsh vs Powell) - unverified",
+      "source": "newsquawk.com / yardeniquicktakes.com / fedratecalc.com"
+    },
+    {
+      "timestamp": "2026-10-28T16:30:00-04:00",
+      "symbol_scope": [
+        "GOOGL"
+      ],
+      "impact_tier": 3,
+      "description": "Alphabet Q3 earnings (after close, call 16:30 ET)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
+    },
+    {
+      "timestamp": "2026-10-28T17:00:00-04:00",
+      "symbol_scope": [
+        "MSFT",
+        "NOW",
+        "KLAC"
+      ],
+      "impact_tier": 3,
+      "description": "Microsoft (call 17:30), ServiceNow, KLA Q3 earnings (after close)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
+    },
+    {
+      "timestamp": "2026-10-29T08:30:00-04:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "US Q3 GDP and September PCE (core PCE ~3.1% y/y expected per BofA); weekly jobless claims",
+      "source": "newsquawk.com / yardeniquicktakes.com / fedratecalc.com"
+    },
+    {
+      "timestamp": "2026-10-29T08:30:00-04:00",
+      "symbol_scope": [
+        "LLY",
+        "MA",
+        "MRK",
+        "CAT",
+        "BMY",
+        "LIN"
+      ],
+      "impact_tier": 2,
+      "description": "Eli Lilly, Mastercard, Merck, Caterpillar, BMS, Linde Q3 earnings (before open)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
+    },
+    {
+      "timestamp": "2026-10-29T16:05:00-04:00",
+      "symbol_scope": [
+        "AMZN",
+        "INTC",
+        "COIN",
+        "MSTR",
+        "SBUX",
+        "GILD"
+      ],
+      "impact_tier": 3,
+      "description": "Amazon (call 17:00), Intel, Coinbase, Strategy, Starbucks, Gilead Q3 earnings (after close); COIN/MSTR are crypto-beta",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
+    },
+    {
+      "timestamp": "2026-10-30T06:30:00-04:00",
+      "symbol_scope": [
+        "XOM",
+        "CVX",
+        "ABBV",
+        "REGN"
+      ],
+      "impact_tier": 2,
+      "description": "ExxonMobil (release 06:30), Chevron, AbbVie, Regeneron Q3 earnings (before open)",
+      "source": "stocktitan.net earnings calendar wk Oct 26"
     },
     {
       "timestamp": "2026-11-06T08:30:00-05:00",
       "symbol_scope": [],
       "impact_tier": 3,
-      "description": "US Employment Situation (NFP), October data",
+      "description": "US Employment Situation (NFP), October data (look-ahead)",
       "source": "bls.gov schedule / financecalendar.com"
     }
   ],
   "fetch_errors": [
-    "No FOMC, CPI or NFP inside Oct 19-23; FOMC Oct 28 and NFP Nov 6 included as look-ahead; Oct CPI due ~2026-11-10 (unverified vs BLS)",
-    "No verified crypto catalysts (token unlocks/upgrades) found for the week; search returned only older items",
-    "Earnings times from secondary sources; confirm before trading"
+    "No CPI or NFP inside Oct 26-Nov 1; NFP Nov 6 included as look-ahead; Oct CPI ~2026-11-10 (unverified vs BLS)",
+    "No verified crypto catalysts (unlocks/upgrades/ETF deadlines) found; search returned only 2023-2025 items - check tokenomist.ai manually",
+    "Apple and Meta dates not confirmed this week (Meta reported Oct 21 per prior calendar); earnings times from secondary sources, confirm before trading",
+    "Impact tiers use schema enum (1=LOW,2=MEDIUM,3=HIGH); prior calendars inverted earnings tiers"
   ]
 }
