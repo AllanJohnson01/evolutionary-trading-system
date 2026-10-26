@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-25T16:45:00+00:00",
+  "as_of": "2026-10-26T16:45:00+00:00",
   "regime": "neutral",
   "risk_dial": "0.5",
   "blackout_windows": [
@@ -14,6 +14,6 @@
       "reason": "US Employment Situation (NFP), October data"
     }
   ],
-  "notes": "DATA-LIMITED posture. Alpaca market data/news returned 401 and web search found no coverage of the Oct 27-28 FOMC, so no overnight/weekend price action or headline sentiment was verified. Regime held at neutral and risk_dial at 0.5 (fail-cautious). The only tier-3 events ahead are the FOMC decision (Wed Oct 28) and NFP (Fri Nov 6); both have blackout windows. FRED-sourced calendar entries (daily 'FOMC Minutes', GDP) look like release-date artifacts and were not used for blackouts. Review and re-issue once Alpaca credentials are restored.",
-  "valid_until": "2026-10-26T16:45:00+00:00"
+  "notes": "DATA-LIMITED posture (second consecutive day). Alpaca market data and news returned 401 and web search returned no current coverage, so no overnight/weekend price action or headline sentiment was verified. Regime held at neutral and risk_dial at 0.5 (fail-cautious). Tier-3 events ahead: FOMC decision (Wed Oct 28) and NFP (Fri Nov 6), both with blackout windows. FRED-sourced calendar entries (daily 'FOMC Minutes', GDP) look like release-date artifacts and were not used for blackouts. Re-issue once Alpaca credentials are restored.",
+  "valid_until": "2026-10-27T16:45:00+00:00"
 }
