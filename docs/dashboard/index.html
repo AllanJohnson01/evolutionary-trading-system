@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evo-Trader — Agent Performance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+:root{
+  --bg-primary:#f6f7f9; --bg-card:#ffffff; --bg-header:#12121c;
+  --text-primary:#1b1d23; --text-secondary:#6b7280; --text-on-dark:#f5f5f7;
+  --c-momentum:#4C72B0; --c-breakout:#DD8452; --c-grid:#55A868; --c-meanrev:#C44E52; --c-horizon:#8172B3;
+  --positive:#1f9254; --negative:#d64545; --neutral:#6c757d;
+  --gap:16px; --radius:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg-primary);color:var(--text-primary);line-height:1.5;}
+.dashboard-container{max-width:1400px;margin:0 auto;padding:var(--gap);}
+.dashboard-header{background:var(--bg-header);color:var(--text-on-dark);padding:20px 24px;border-radius:var(--radius);margin-bottom:var(--gap);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.dashboard-header h1{font-size:20px;font-weight:600;}
+.dashboard-header p{font-size:12px;color:#a9acc0;margin-top:2px;}
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.filter-group{display:flex;flex-direction:column;gap:3px;}
+.filter-group label{font-size:11px;color:#a9acc0;text-transform:uppercase;letter-spacing:.4px;}
+.filter-group select{padding:6px 10px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text-on-dark);font-size:13px;}
+.filter-group select option{background:var(--bg-header);color:var(--text-on-dark);}
+.banner{background:#fff6da;border:1px solid #f0d98a;color:#6b5400;padding:10px 16px;border-radius:var(--radius);margin-bottom:var(--gap);font-size:13px;}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+.kpi-card{background:var(--bg-card);border-radius:var(--radius);padding:18px 22px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.kpi-label{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.kpi-value{font-size:26px;font-weight:700;}
+.kpi-change{font-size:12px;font-weight:500;margin-top:4px;}
+.kpi-change.positive{color:var(--positive);}
+.kpi-change.negative{color:var(--negative);}
+.kpi-change.neutral{color:var(--neutral);}
+.chart-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+.chart-container{background:var(--bg-card);border-radius:var(--radius);padding:20px 24px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.chart-container h3{font-size:14px;font-weight:600;margin-bottom:14px;}
+.chart-container canvas{max-height:280px;}
+.table-section{background:var(--bg-card);border-radius:var(--radius);padding:20px 24px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;margin-bottom:var(--gap);}
+.table-section h3{font-size:14px;font-weight:600;margin-bottom:14px;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table thead th{text-align:left;padding:10px 12px;border-bottom:2px solid #e3e5ea;color:var(--text-secondary);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none;}
+.data-table thead th:hover{color:var(--text-primary);background:#f8f9fa;}
+.data-table tbody td{padding:10px 12px;border-bottom:1px solid #f0f0f0;white-space:nowrap;}
+.data-table tbody tr:hover{background:#f8f9fa;}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;}
+.pill.pos{background:#e5f6ec;color:var(--positive);}
+.pill.neg{background:#fbe9e9;color:var(--negative);}
+.dashboard-footer{text-align:center;font-size:12px;color:var(--text-secondary);padding:12px 0;}
+@media (max-width:768px){.kpi-row{grid-template-columns:repeat(2,1fr);}.chart-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="dashboard-container">
+
+  <header class="dashboard-header">
+    <div>
+      <h1>Evo-Trader — Agent Performance</h1>
+      <p>Tactical population (4 strategies) + Horizon (standalone paper ledger) · paper accounts only</p>
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <label for="filter-period">Period</label>
+        <select id="filter-period" onchange="dashboard.applyFilters()">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-agent">Agent</label>
+        <select id="filter-agent" onchange="dashboard.applyFilters()">
+          <option value="all">All agents</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <div class="banner" id="status" hidden></div>
+
+  <section class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Portfolio Equity (paper)</div>
+      <div class="kpi-value" id="kpi-equity">—</div>
+      <div class="kpi-change" id="kpi-equity-change">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Realized P&amp;L (period)</div>
+      <div class="kpi-value" id="kpi-pnl">—</div>
+      <div class="kpi-change" id="kpi-pnl-change">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Closed Trades</div>
+      <div class="kpi-value" id="kpi-trades">—</div>
+      <div class="kpi-change" id="kpi-trades-change">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Blended Win Rate</div>
+      <div class="kpi-value" id="kpi-winrate">—</div>
+      <div class="kpi-change" id="kpi-winrate-change">—</div>
+    </div>
+  </section>
+
+  <section class="chart-row">
+    <div class="chart-container">
+      <h3>Equity Curve (paper NAV)</h3>
+      <canvas id="chart-equity"></canvas>
+    </div>
+    <div class="chart-container">
+      <h3>Realized P&amp;L by Agent</h3>
+      <canvas id="chart-pnl-agent"></canvas>
+    </div>
+  </section>
+
+  <section class="chart-row">
+    <div class="chart-container">
+      <h3>Tactical Cycle Activity (entries / denials / exits)</h3>
+      <canvas id="chart-activity"></canvas>
+    </div>
+    <div class="chart-container">
+      <h3>Horizon Tick Decisions</h3>
+      <canvas id="chart-horizon"></canvas>
+    </div>
+  </section>
+
+  <section class="table-section">
+    <h3>Agent Detail</h3>
+    <div id="agent-table"></div>
+  </section>
+
+  <footer class="dashboard-footer">
+    <span>Data as of: <span id="data-date"></span> · <span id="data-window"></span></span>
+  </footer>
+</div>
+
+<script src="dashboard_data.js"></script>
+<script>
+// Data comes from dashboard_data.js, written by ops/scripts/export_dashboard_data.py.
+const DATA = window.DASHBOARD_DATA;
+const HORIZON_COLORS = { enter_long: "#55A868CC", enter_short: "#C44E52CC", hold: "#8172B3CC" };
+
+const COLORS = { "Momentum-Hunter":"#4C72B0", "Breakout":"#DD8452", "Grid-Trader":"#55A868", "Mean-Reversion":"#C44E52", "Horizon":"#8172B3" };
+
+function money(v){
+  const sign = v < 0 ? "-" : "";
+  const abs = Math.abs(v);
+  return `${sign}$${abs.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+}
+function pct(v){ return `${(v*100).toFixed(1)}%`; }
+
+class Dashboard {
+  constructor(data){
+    this.data = data;
+    this.charts = {};
+    this.init();
+  }
+  init(){
+    document.getElementById("data-date").textContent = new Date(this.data.as_of).toLocaleString();
+    document.getElementById("data-window").textContent = `agent stats cover the last ${this.data.period_days} days`;
+    this.renderStatus();
+    this.populateAgentFilter();
+    this.render();
+  }
+  populateAgentFilter(){
+    const sel = document.getElementById("filter-agent");
+    this.data.agents.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a.agent_id; opt.textContent = a.agent_id;
+      sel.appendChild(opt);
+    });
+  }
+  getFiltered(){
+    const agentFilter = document.getElementById("filter-agent").value;
+    const periodDays = parseInt(document.getElementById("filter-period").value, 10);
+    const agents = agentFilter === "all" ? this.data.agents : this.data.agents.filter(a => a.agent_id === agentFilter);
+    const curve = this.data.equity_curve.slice(-periodDays);
+    return { agents, curve };
+  }
+  applyFilters(){ this.render(); }
+  renderStatus(){
+    const notes = [];
+    if (!this.data.account) notes.push("Account snapshot unavailable (no Alpaca credentials at export time).");
+    if (this.data.equity_curve.length < 2) notes.push("Equity curve needs at least 2 daily snapshots; it fills in as the export runs.");
+    if (this.data.agents.every(a => a.trade_count === 0)) notes.push("No closed trades in this window, so realized P&L and win rate are empty.");
+    const el = document.getElementById("status");
+    el.hidden = notes.length === 0;
+    el.textContent = notes.join(" ");
+  }
+  render(){
+    const { agents, curve } = this.getFiltered();
+    this.renderKPIs(agents, curve);
+    this.renderEquityChart(curve);
+    this.renderPnlChart(agents);
+    this.renderActivityChart(agents);
+    this.renderHorizonChart();
+    this.renderTable(agents);
+  }
+  renderKPIs(agents, curve){
+    const acct = this.data.account;
+    const lastNav = acct ? acct.equity : curve[curve.length - 1]?.nav ?? null;
+    const eqEl = document.getElementById("kpi-equity");
+    eqEl.textContent = lastNav === null ? "n/a" : money(lastNav);
+    const eqChange = document.getElementById("kpi-equity-change");
+    if (acct) {
+      eqChange.textContent = `${acct.day_change >= 0 ? "+" : ""}${money(acct.day_change)} since prev close · unrealized ${money(acct.unrealized_pl)}`;
+      eqChange.className = "kpi-change " + (acct.day_change >= 0 ? "positive" : "negative");
+    } else {
+      eqChange.textContent = "no account snapshot";
+      eqChange.className = "kpi-change neutral";
+    }
+
+    const totalPnl = agents.reduce((s,a) => s + a.realized_pnl, 0);
+    document.getElementById("kpi-pnl").textContent = money(totalPnl);
+    const pnlEl = document.getElementById("kpi-pnl-change");
+    pnlEl.textContent = `across ${agents.length} agent${agents.length===1?"":"s"}`;
+    pnlEl.className = "kpi-change " + (totalPnl >= 0 ? "positive" : "negative");
+
+    const totalTrades = agents.reduce((s,a) => s + a.trade_count, 0);
+    document.getElementById("kpi-trades").textContent = totalTrades.toLocaleString();
+    document.getElementById("kpi-trades-change").textContent = "closed, period";
+    document.getElementById("kpi-trades-change").className = "kpi-change neutral";
+
+    const totalWins = agents.reduce((s,a) => s + a.wins, 0);
+    const winRate = totalTrades ? totalWins / totalTrades : 0;
+    document.getElementById("kpi-winrate").textContent = totalTrades ? pct(winRate) : "n/a";
+    const wrEl = document.getElementById("kpi-winrate-change");
+    wrEl.textContent = `${totalWins}/${totalTrades} wins`;
+    wrEl.className = "kpi-change " + (!totalTrades ? "neutral" : winRate >= 0.5 ? "positive" : "negative");
+  }
+  renderEquityChart(curve){
+    const ctx = document.getElementById("chart-equity").getContext("2d");
+    const labels = curve.map(p => p.date);
+    const values = curve.map(p => p.nav);
+    if (this.charts.equity) { this.charts.equity.data.labels = labels; this.charts.equity.data.datasets[0].data = values; this.charts.equity.update("none"); return; }
+    this.charts.equity = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [{ label: "NAV", data: values, borderColor: "#4C72B0", backgroundColor: "#4C72B020", borderWidth: 2, fill: true, tension: 0.25, pointRadius: 0, pointHoverRadius: 5 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `NAV: ${money(c.parsed.y)}` } } },
+        scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { ticks: { callback: v => money(v) } } }
+      }
+    });
+  }
+  renderPnlChart(agents){
+    const ctx = document.getElementById("chart-pnl-agent").getContext("2d");
+    const labels = agents.map(a => a.agent_id);
+    const values = agents.map(a => a.realized_pnl);
+    const colors = agents.map(a => COLORS[a.agent_id] || "#6c757d");
+    if (this.charts.pnl) { this.charts.pnl.data.labels = labels; this.charts.pnl.data.datasets[0].data = values; this.charts.pnl.data.datasets[0].backgroundColor = colors; this.charts.pnl.update("none"); return; }
+    this.charts.pnl = new Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets: [{ label: "Realized P&L", data: values, backgroundColor: colors, borderRadius: 4 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => money(c.parsed.y) } } },
+        scales: { y: { ticks: { callback: v => money(v) }, grid: { display: true } }, x: { grid: { display: false } } }
+      }
+    });
+  }
+  renderActivityChart(agents){
+    const ctx = document.getElementById("chart-activity").getContext("2d");
+    const tactical = agents.filter(a => a.cycles !== null);
+    const labels = tactical.map(a => a.agent_id);
+    const orders = tactical.map(a => a.orders);
+    const denied = tactical.map(a => a.entries_denied);
+    const exits = tactical.map(a => a.exits);
+    if (this.charts.activity) {
+      this.charts.activity.data.labels = labels;
+      this.charts.activity.data.datasets[0].data = orders;
+      this.charts.activity.data.datasets[1].data = denied;
+      this.charts.activity.data.datasets[2].data = exits;
+      this.charts.activity.update("none"); return;
+    }
+    this.charts.activity = new Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets: [
+        { label: "Orders placed", data: orders, backgroundColor: "#4C72B0CC" },
+        { label: "Entries denied", data: denied, backgroundColor: "#DD8452CC" },
+        { label: "Exits", data: exits, backgroundColor: "#55A868CC" },
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: "top", labels: { usePointStyle: true } } },
+        scales: { x: { stacked: false, grid: { display: false } }, y: { beginAtZero: true } }
+      }
+    });
+  }
+  renderHorizonChart(){
+    const ctx = document.getElementById("chart-horizon").getContext("2d");
+    const h = this.data.horizon_decisions;
+    const labels = Object.keys(h);
+    const values = Object.values(h);
+    if (this.charts.horizon) return;
+    this.charts.horizon = new Chart(ctx, {
+      type: "doughnut",
+      data: { labels, datasets: [{ data: values, backgroundColor: labels.map(l => HORIZON_COLORS[l] || "#6c757dCC"), borderColor: "#fff", borderWidth: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: "60%",
+        plugins: { legend: { position: "right", labels: { usePointStyle: true } },
+          tooltip: { callbacks: { label: c => { const total = c.dataset.data.reduce((a,b)=>a+b,0); return `${c.label}: ${c.parsed} (${((c.parsed/total)*100).toFixed(1)}%)`; } } } }
+      }
+    });
+  }
+  renderTable(agents){
+    const container = document.getElementById("agent-table");
+    const columns = [
+      { field: "agent_id", label: "Agent" },
+      { field: "type", label: "Type" },
+      { field: "trade_count", label: "Trades" },
+      { field: "wins", label: "Wins" },
+      { field: "win_rate", label: "Win Rate" },
+      { field: "realized_pnl", label: "Realized P&L" },
+      { field: "cycles", label: "Cycles" },
+      { field: "orders", label: "Orders" },
+      { field: "entries_denied", label: "Denied" },
+    ];
+    const rows = agents.map(a => ({ ...a, win_rate: a.trade_count ? a.wins / a.trade_count : null }));
+    let sortCol = "realized_pnl", sortDir = "desc";
+
+    const draw = (data) => {
+      let html = '<table class="data-table"><thead><tr>';
+      columns.forEach(c => {
+        const arrow = sortCol === c.field ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+        html += `<th data-field="${c.field}">${c.label}${arrow}</th>`;
+      });
+      html += "</tr></thead><tbody>";
+      data.forEach(r => {
+        const pnlPill = r.realized_pnl >= 0
+          ? `<span class="pill pos">${money(r.realized_pnl)}</span>`
+          : `<span class="pill neg">${money(r.realized_pnl)}</span>`;
+        html += `<tr>
+          <td><strong>${r.agent_id}</strong></td>
+          <td>${r.type}</td>
+          <td>${r.trade_count}</td>
+          <td>${r.wins}</td>
+          <td>${r.win_rate !== null ? pct(r.win_rate) : "n/a"}</td>
+          <td>${pnlPill}</td>
+          <td>${r.cycles ?? "n/a"}</td>
+          <td>${r.orders ?? "n/a"}</td>
+          <td>${r.entries_denied ?? "n/a"}</td>
+        </tr>`;
+      });
+      html += "</tbody></table>";
+      container.innerHTML = html;
+      container.querySelectorAll("th").forEach(th => {
+        th.style.cursor = "pointer";
+        th.addEventListener("click", () => {
+          const field = th.dataset.field;
+          sortDir = (sortCol === field && sortDir === "desc") ? "asc" : "desc";
+          sortCol = field;
+          const sorted = [...data].sort((a,b) => {
+            const av = a[field], bv = b[field];
+            const cmp = (av === null || av === undefined) ? -1 : (bv === null || bv === undefined) ? 1 : (av < bv ? -1 : av > bv ? 1 : 0);
+            return sortDir === "asc" ? cmp : -cmp;
+          });
+          draw(sorted);
+        });
+      });
+    };
+    const initialSorted = [...rows].sort((a,b) => b.realized_pnl - a.realized_pnl);
+    draw(initialSorted);
+  }
+}
+
+const dashboard = new Dashboard(DATA);
+</script>
+</body>
+</html>
