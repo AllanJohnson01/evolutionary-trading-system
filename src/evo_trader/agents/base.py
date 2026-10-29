@@ -5,7 +5,7 @@ import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
-from typing import Protocol
+from typing import Optional, Protocol
 
 
 class AgentType(str, Enum):
@@ -30,6 +30,10 @@ class PerformanceRecord:
     pnl_pct: Decimal = Decimal("0")
     max_drawdown: Decimal = Decimal("0")
     trade_count: int = 0
+
+    # Edge-metrics fields (set by EvolutionEngine when edge-metrics are available)
+    sharpe: Optional[float] = None        # per-trade Sharpe for this period
+    zero_edge: bool = False               # True when edge ≈ 0 for this period
 
 
 @dataclass

@@ -4,7 +4,6 @@ clones winners with mutation, and keeps the population bounded.
 """
 from __future__ import annotations
 
-import copy
 import logging
 import random
 import uuid
@@ -24,6 +23,20 @@ from evo_trader.portfolio.manager import PortfolioManager
 logger = logging.getLogger(__name__)
 
 
+def _ranking_score(record: Optional[PerformanceRecord]) -> float:
+    """
+    Risk-adjusted ranking key.
+
+    Prefers Sharpe when available (risk-adjusted edge); falls back to pnl_pct
+    so legacy callers that don't supply Sharpe still work correctly.
+    """
+    if record is None:
+        return 0.0
+    if record.sharpe is not None:
+        return record.sharpe
+    return float(record.pnl_pct)
+
+
 class EvolutionEngine:
     """
     Runs one evaluation period at a time. Caller drives the cadence
@@ -32,6 +45,13 @@ class EvolutionEngine:
     All capital moves go through portfolio_manager — this engine only
     decides WHO gets eliminated/cloned and tells the portfolio manager
     to act.
+
+    Edge-metrics integration:
+        - Ranking uses per-period Sharpe (risk-adjusted edge) when the
+          PerformanceRecord carries it; falls back to pnl_pct otherwise.
+        - A zero_edge flag on the record increments a per-agent counter;
+          agents with zero_edge for >=cfg consecutive periods are flagged
+          for elimination regardless of PnL rank.
     """
 
     def __init__(
@@ -49,6 +69,17 @@ class EvolutionEngine:
         self._consecutive_bottom: dict[str, int] = {}
         self._consecutive_top: dict[str, int] = {}
 
+        # Zero-edge streak counters: agent_id → consecutive periods with zero_edge=True
+        self._consecutive_zero_edge: dict[str, int] = {}
+
+    # ------------------------------------------------------------------
+    # Public: zero-edge streak read-out (for MetricsSummary / weekly review)
+    # ------------------------------------------------------------------
+
+    def zero_edge_streak(self, agent_id: str) -> int:
+        """Current consecutive zero-edge period count for an agent."""
+        return self._consecutive_zero_edge.get(agent_id, 0)
+
     # ------------------------------------------------------------------
     # Main entry point — call once per evaluation period
     # ------------------------------------------------------------------
@@ -61,6 +92,8 @@ class EvolutionEngine:
 
         Args:
             period_record: agent_id → PerformanceRecord for the period just ended.
+                           Set PerformanceRecord.sharpe and .zero_edge from the
+                           edge-metrics module before calling for full ranking.
 
         Returns:
             dict of agent_id → decision ("eliminated" | "cloned" | "active")
@@ -76,10 +109,20 @@ class EvolutionEngine:
             if agent.agent_id in period_record:
                 agent.record_period(period_record[agent.agent_id])
 
-        # Rank by PnL% for this period
+        # Update zero-edge streaks
+        for agent in active:
+            rec = period_record.get(agent.agent_id)
+            if rec is not None and rec.zero_edge:
+                self._consecutive_zero_edge[agent.agent_id] = (
+                    self._consecutive_zero_edge.get(agent.agent_id, 0) + 1
+                )
+            else:
+                self._consecutive_zero_edge[agent.agent_id] = 0
+
+        # Rank by risk-adjusted edge (Sharpe when available, else pnl_pct)
         ranked = sorted(
             active,
-            key=lambda a: period_record.get(a.agent_id, PerformanceRecord("", "")).pnl_pct,
+            key=lambda a: _ranking_score(period_record.get(a.agent_id)),
             reverse=True,
         )
         total = len(ranked)
@@ -95,7 +138,7 @@ class EvolutionEngine:
         bottom_ids = {a.agent_id for a in ranked[-bottom_n:]}
         top_ids = {a.agent_id for a in ranked[:top_n]}
 
-        # Update consecutive counters
+        # Update consecutive bottom/top counters
         for agent in active:
             aid = agent.agent_id
             if aid in bottom_ids:
@@ -105,17 +148,37 @@ class EvolutionEngine:
                 self._consecutive_top[aid] = self._consecutive_top.get(aid, 0) + 1
                 self._consecutive_bottom[aid] = 0
             else:
-                # Middle — reset both streaks
                 self._consecutive_bottom[aid] = 0
                 self._consecutive_top[aid] = 0
 
-        # Eliminate bottom performers with enough consecutive periods
+        # Agents flagged for zero-edge regardless of PnL rank
+        zero_edge_condemned: set[str] = {
+            agent.agent_id
+            for agent in active
+            if self._consecutive_zero_edge.get(agent.agent_id, 0)
+            >= self._cfg.elimination_consecutive_periods
+        }
+
+        # Eliminate: bottom performers with enough consecutive bad periods,
+        # plus any zero-edge condemned agents not already in bottom
         eliminated_ids: set[str] = set()
+
         for agent in ranked[-bottom_n:]:
             aid = agent.agent_id
             consec = self._consecutive_bottom.get(aid, 0)
             if consec >= self._cfg.elimination_consecutive_periods:
-                self._eliminate(agent, period_record.get(aid), ranked.index(agent), total)
+                self._eliminate(agent, period_record.get(aid), ranked.index(agent), total,
+                                reason="bottom_pnl")
+                eliminated_ids.add(aid)
+                decisions[aid] = "eliminated"
+
+        for agent in active:
+            aid = agent.agent_id
+            if aid in eliminated_ids:
+                continue
+            if aid in zero_edge_condemned:
+                self._eliminate(agent, period_record.get(aid), ranked.index(agent), total,
+                                reason="zero_edge")
                 eliminated_ids.add(aid)
                 decisions[aid] = "eliminated"
 
@@ -133,11 +196,9 @@ class EvolutionEngine:
                     clone = self._clone(agent, period_record.get(aid), ranked.index(agent), total)
                     new_clones.append(clone)
                     decisions[aid] = "cloned"
-                    # Reset top streak to avoid cloning every period indefinitely
                     self._consecutive_top[aid] = 0
 
         # Register clones with portfolio manager
-        clone_alloc = self._cfg.initial_agent_count > 0 and self._pm.cash_reserve > 0
         for clone in new_clones:
             seed_amount = self._pm.release_reserve_for_clone(
                 Decimal("5000")  # $5K seed from cash reserve per clone
@@ -167,18 +228,29 @@ class EvolutionEngine:
         record: Optional[PerformanceRecord],
         rank: int,
         total: int,
+        reason: str = "bottom_pnl",
     ) -> None:
+        trigger_metric = "sharpe" if (record and record.sharpe is not None) else "pnl_pct"
+        trigger_value = (
+            str(record.sharpe) if (record and record.sharpe is not None)
+            else (str(record.pnl_pct) if record else "0")
+        )
         self._log.record(EvolutionEvent(
             event_type=EventType.ELIMINATION,
             period_number=self._period_number,
             agent_id=agent.agent_id,
-            trigger_metric="pnl_pct",
-            trigger_value=str(record.pnl_pct) if record else "0",
+            trigger_metric=trigger_metric,
+            trigger_value=trigger_value,
             agent_rank=rank + 1,
             total_agents=total,
             pnl_pct=str(record.pnl_pct) if record else "0",
-            notes=f"Bottom {self._cfg.elimination_threshold:.0%} for "
-                  f"{self._cfg.elimination_consecutive_periods} consecutive periods",
+            notes=(
+                f"zero_edge for {self._consecutive_zero_edge.get(agent.agent_id, 0)} "
+                f"consecutive periods"
+                if reason == "zero_edge"
+                else f"Bottom {self._cfg.elimination_threshold:.0%} for "
+                     f"{self._cfg.elimination_consecutive_periods} consecutive periods"
+            ),
         ))
         self._pm.eliminate_agent(agent.agent_id)
 
@@ -206,7 +278,12 @@ class EvolutionEngine:
             parent_id=source.agent_id,
         )
 
-        # Record what parameters were mutated (concrete strategy params TBD)
+        trigger_metric = "sharpe" if (record and record.sharpe is not None) else "pnl_pct"
+        trigger_value = (
+            str(record.sharpe) if (record and record.sharpe is not None)
+            else (str(record.pnl_pct) if record else "0")
+        )
+
         mutated: dict[str, str] = {
             "mutation_rate": str(mutation_rate),
             "source_generation": str(source.generation),
@@ -217,8 +294,8 @@ class EvolutionEngine:
             period_number=self._period_number,
             agent_id=clone.agent_id,
             parent_agent_id=source.agent_id,
-            trigger_metric="pnl_pct",
-            trigger_value=str(record.pnl_pct) if record else "0",
+            trigger_metric=trigger_metric,
+            trigger_value=trigger_value,
             mutated_parameters=mutated,
             mutation_rate=str(mutation_rate),
             agent_rank=rank + 1,
