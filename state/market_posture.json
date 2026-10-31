@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-30T16:35:00+00:00",
+  "as_of": "2026-10-31T16:35:00+00:00",
   "regime": "neutral",
   "risk_dial": "0.5",
   "blackout_windows": [
@@ -9,6 +9,6 @@
       "reason": "US Employment Situation (NFP), October data"
     }
   ],
-  "notes": "DATA-LIMITED posture (Alpaca market data and news still return 401; no verified overnight price action or headline sentiment). Web search: Fed held on Oct 28 and indices closed modestly higher that day (S&P ~7,744, Nasdaq ~26,550, Dow ~52,475); Oct 29 GDP/PCE results and Oct 30 close not found. Regime held at neutral and risk_dial at 0.5 (fail-cautious). Next Tier-3: NFP Fri Nov 6 (blackout). CPI Nov 10 is date-only from FRED with no verified release time, so no blackout set; FRED daily 'FOMC Minutes' entries are release-date artifacts and ignored. Re-issue once Alpaca credentials are restored.",
-  "valid_until": "2026-10-31T16:35:00+00:00"
+  "notes": "DATA-LIMITED posture (Saturday; US equity markets closed; Alpaca market data and news still return 401, so no verified weekend crypto action or headline sentiment). Web search found no verified Oct 30 close or PCE result; latest verified prints are from the week of Oct 19-23 (S&P ~7,623, Nasdaq ~25,955 on Oct 23, a choppy week with a -2.6% Nasdaq day on Oct 22). Regime held neutral and risk_dial 0.5 (fail-cautious). Next Tier-3: NFP Fri Nov 6 (blackout 08:00-09:00 ET). CPI Nov 10 is date-only from FRED with no verified release time, so no blackout set; FRED daily 'FOMC Minutes' entries are release-date artifacts and ignored. Re-issue once Alpaca credentials are restored.",
+  "valid_until": "2026-11-01T16:35:00+00:00"
 }
