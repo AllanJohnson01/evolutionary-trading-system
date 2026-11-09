@@ -1,0 +1,42 @@
+{
+  "fetched_at": "2026-11-08T23:01:23.149031+00:00",
+  "events": [
+    {
+      "timestamp": "2026-11-10T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "US CPI, October data",
+      "source": "bls.gov CPI release schedule (verified)"
+    },
+    {
+      "timestamp": "2026-11-11T09:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 1,
+      "description": "Veterans Day - US equities open, bond market closed (thin Treasury liquidity)",
+      "source": "standard SIFMA/NYSE calendar convention"
+    },
+    {
+      "timestamp": "2026-11-12T16:05:00-05:00",
+      "symbol_scope": [
+        "CSCO"
+      ],
+      "impact_tier": 2,
+      "description": "Cisco Q1 FY2027 earnings (after close; call 16:30 ET)",
+      "source": "investor.cisco.com conference call release (verified)"
+    },
+    {
+      "timestamp": "2026-11-13T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "US PPI, October data",
+      "source": "bls.gov PPI release schedule (verified)"
+    }
+  ],
+  "fetch_errors": [
+    "No FOMC decision this week (Dec 8-9 next, per federalreserve.gov; Oct minutes were not listed) - none omitted in error",
+    "No verified crypto catalysts for Nov 9-15 2026: HYPE ~$923M unlock was Nov 6 (past); ZRO ~$39M unlock ~Nov 20 (next week, trackers differ Nov 19/20) - check tokenomist.ai manually",
+    "Other earnings (Disney, Walmart, etc.) and retail sales/Fed-speaker dates for Nov 9-15 not found in searches; add manually if relevant",
+    "CPI/PPI times from bls.gov list 08:30 with no timezone stated; assumed ET",
+    "Impact tiers use schema enum (1=LOW,2=MEDIUM,3=HIGH)"
+  ]
+}

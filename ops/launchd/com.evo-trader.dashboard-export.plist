@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.evo-trader.dashboard-export.plist
+  Regenerates docs/dashboard/dashboard_data.{json,js} every Sunday at 18:00 via launchd,
+  and appends an equity snapshot to state/equity_history.jsonl (this is what grows the
+  dashboard's equity curve — run it more often, e.g. daily, for a denser curve).
+
+  TIMING NOTE:
+    StartCalendarInterval fires at LOCAL machine time. Weekday 0 = Sunday.
+
+  BEFORE LOADING:
+    1. Replace every occurrence of FILL_IN with the correct value:
+         WorkingDirectory  — absolute path to the repo root
+         ALPACA_API_KEY    — your Alpaca paper-trading API key
+         ALPACA_SECRET_KEY — your Alpaca paper-trading secret key
+
+    2. Replace /path/to/venv/bin/python3 and /path/to/repo with the absolute paths for
+         your virtual environment's interpreter and the repo checkout.
+
+    3. Replace USERNAME in the log paths, then create the log directory:
+         mkdir -p ~/Library/Logs/evo-trader
+
+    4. Install the plist:
+         cp com.evo-trader.dashboard-export.plist ~/Library/LaunchAgents/
+         launchctl load ~/Library/LaunchAgents/com.evo-trader.dashboard-export.plist
+
+    5. Test it on demand:
+         launchctl start com.evo-trader.dashboard-export
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <key>Label</key>
+    <string>com.evo-trader.dashboard-export</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/venv/bin/python3</string>
+        <string>/path/to/repo/ops/scripts/export_dashboard_data.py</string>
+        <string>--days</string>
+        <string>7</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>18</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>WorkingDirectory</key>
+    <string>FILL_IN</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ALPACA_API_KEY</key>
+        <string>FILL_IN</string>
+        <key>ALPACA_SECRET_KEY</key>
+        <string>FILL_IN</string>
+        <key>ALPACA_BASE_URL</key>
+        <string>https://paper-api.alpaca.markets</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/USERNAME/Library/Logs/evo-trader/dashboard-export.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/USERNAME/Library/Logs/evo-trader/dashboard-export-error.log</string>
+
+</dict>
+</plist>
