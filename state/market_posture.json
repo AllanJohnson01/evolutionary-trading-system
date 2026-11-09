@@ -1,14 +1,14 @@
 {
-  "as_of": "2026-11-03T17:35:00+00:00",
+  "as_of": "2026-11-09T17:35:00+00:00",
   "regime": "neutral",
   "risk_dial": "0.5",
   "blackout_windows": [
     {
-      "start": "2026-11-06T08:00:00-05:00",
-      "end": "2026-11-06T09:00:00-05:00",
-      "reason": "US Employment Situation (NFP), October data"
+      "start": "2026-11-10T08:00:00-05:00",
+      "end": "2026-11-10T09:00:00-05:00",
+      "reason": "US CPI (tier 3); release time assumed 08:30 ET per standard BLS schedule, FRED lists date only"
     }
   ],
-  "notes": "DATA-LIMITED posture (Tue Nov 3, US midterm election day; markets open normally). Alpaca clock, crypto snapshot and news endpoints still return 401, and web search returned only prior-cycle (2018/2022) coverage, so there is no verified overnight/crypto action, futures level or headline sentiment. Regime held neutral and risk_dial 0.5 (fail-cautious). Calendar: election/policy-risk day plus JOLTS 10:00 ET (tier 2), AMD earnings after close (tier 3, single-source); Treasury refunding Nov 4 08:30 ET (tier 2). Next tier-3 macro: NFP Fri Nov 6 (blackout 08:00-09:00 ET). CPI Nov 10 is date-only from FRED with no verified release time, so no blackout set; FRED 'FOMC Minutes' daily entries are release-date artifacts and ignored. Re-issue once Alpaca credentials are restored.",
-  "valid_until": "2026-11-04T17:35:00+00:00"
+  "notes": "DATA-LIMITED posture (Mon Nov 9). Alpaca clock, crypto snapshot and news endpoints still return 401, so there is no verified weekend crypto action, futures level or headline sentiment. A web search surfaced unverified, single-source reports of a sharp equity selloff, oil near $100 and an AI-led rout in the prior week; these could not be corroborated, so they argue for caution but not for a regime change. Regime held neutral and risk_dial 0.5 (fail-cautious). Calendar: CPI Tue Nov 10 (tier 3; assumed 08:30 ET blackout 08:00-09:00 ET), PCE Nov 13 (tier 3, date-only, no blackout set). FRED 'FOMC Minutes' daily entries are release-date artifacts and ignored. Re-issue once Alpaca credentials are restored.",
+  "valid_until": "2026-11-10T17:35:00+00:00"
 }
