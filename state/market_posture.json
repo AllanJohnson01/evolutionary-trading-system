@@ -1,14 +1,8 @@
 {
-  "as_of": "2026-11-03T17:35:00+00:00",
+  "as_of": "2026-11-10T17:35:00+00:00",
   "regime": "neutral",
   "risk_dial": "0.5",
-  "blackout_windows": [
-    {
-      "start": "2026-11-06T08:00:00-05:00",
-      "end": "2026-11-06T09:00:00-05:00",
-      "reason": "US Employment Situation (NFP), October data"
-    }
-  ],
-  "notes": "DATA-LIMITED posture (Tue Nov 3, US midterm election day; markets open normally). Alpaca clock, crypto snapshot and news endpoints still return 401, and web search returned only prior-cycle (2018/2022) coverage, so there is no verified overnight/crypto action, futures level or headline sentiment. Regime held neutral and risk_dial 0.5 (fail-cautious). Calendar: election/policy-risk day plus JOLTS 10:00 ET (tier 2), AMD earnings after close (tier 3, single-source); Treasury refunding Nov 4 08:30 ET (tier 2). Next tier-3 macro: NFP Fri Nov 6 (blackout 08:00-09:00 ET). CPI Nov 10 is date-only from FRED with no verified release time, so no blackout set; FRED 'FOMC Minutes' daily entries are release-date artifacts and ignored. Re-issue once Alpaca credentials are restored.",
-  "valid_until": "2026-11-04T17:35:00+00:00"
+  "blackout_windows": [],
+  "notes": "DATA-LIMITED posture (Tue Nov 10, 12:35 ET). Alpaca clock, crypto snapshot and news endpoints still return 401 and web search returned no coverage of today's session, futures, weekend crypto action or the October CPI outcome, so there is no verified price action or headline sentiment. Regime held neutral and risk_dial 0.5 (fail-cautious). Calendar: US CPI (October) released 08:30 ET today (tier 3), already past, so no blackout is set and the print's market reaction is unverified. Upcoming: PCE Fri Nov 13 (date-only from FRED, no verified release time, so no blackout); FRED 'FOMC Minutes' daily entries are release-date artifacts and ignored; GDP Nov 24 date-only. Re-issue once Alpaca credentials are restored.",
+  "valid_until": "2026-11-11T17:35:00+00:00"
 }
