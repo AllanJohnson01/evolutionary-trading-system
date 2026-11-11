@@ -73,10 +73,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>${HOME}/Library/Logs/evo-trader/horizon-review.log</string>
+    <string>/Users/USERNAME/Library/Logs/evo-trader/horizon-review.log</string>
 
     <key>StandardErrorPath</key>
-    <string>${HOME}/Library/Logs/evo-trader/horizon-review-error.log</string>
+    <string>/Users/USERNAME/Library/Logs/evo-trader/horizon-review-error.log</string>
 
 </dict>
 </plist>

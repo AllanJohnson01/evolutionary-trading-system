@@ -194,10 +194,90 @@ def test_close_position_wraps_sdk_errors():
         client.close_position("momentum-1", "SPY", "stop hit")
 
 
-def test_get_open_positions_returns_empty_and_warns_once(caplog):
+def test_get_open_positions_returns_empty_when_no_positions_registered():
     client = AlpacaOrderClient("k", "s", PAPER_URL, trading_client=FakeTradingClient())
-    with caplog.at_level("WARNING"):
-        assert client.get_open_positions("a") == []
-        assert client.get_open_positions("b") == []
-    warnings = [r for r in caplog.records if "attribut" in r.message.lower()]
-    assert len(warnings) == 1
+    assert client.get_open_positions("a") == []
+    assert client.get_open_positions("b") == []
+
+
+# ---------------------------------------------------------------------------
+# In-memory position tracking and trade log
+# ---------------------------------------------------------------------------
+
+
+class FakeTradingClientWithPrice:
+    """Trading client that returns a known current_price from get_all_positions."""
+
+    def __init__(self, symbol: str, price: str):
+        self.orders = []
+        self.closed: list[str] = []
+        self._symbol = symbol
+        self._price = price
+
+    def submit_order(self, request):
+        self.orders.append(request)
+        return SimpleNamespace(id="order-abc")
+
+    def get_all_positions(self):
+        return [
+            SimpleNamespace(symbol=self._symbol, current_price=self._price)
+        ]
+
+    def close_position(self, symbol):
+        self.closed.append(symbol)
+
+
+def test_submit_order_with_strategy_id_registers_position(tmp_path):
+    trading = FakeTradingClientWithPrice("SPY", "100.00")
+    client = AlpacaOrderClient(
+        "k", "s", PAPER_URL, trading_client=trading,
+        trade_log_path=tmp_path / "trade_log.jsonl",
+    )
+    client.submit_order("SPY", "long", Decimal("1000"), strategy_id="intraday_momentum_abc")
+
+    positions = client.get_open_positions("intraday_momentum_abc")
+    assert len(positions) == 1
+    assert positions[0].symbol == "SPY"
+    assert positions[0].direction == "long"
+    assert positions[0].entry_price == Decimal("100.00")
+
+
+def test_close_position_writes_trade_log_with_realized_pnl(tmp_path):
+    log_path = tmp_path / "trade_log.jsonl"
+    trading = FakeTradingClientWithPrice("SPY", "105.00")
+    client = AlpacaOrderClient(
+        "k", "s", PAPER_URL, trading_client=trading,
+        trade_log_path=log_path,
+    )
+    client.set_agent_id("intraday_momentum_abc", "agent-uuid-1234")
+    # Register entry at $100
+    trading._price = "100.00"
+    client.submit_order("SPY", "long", Decimal("1000"), strategy_id="intraday_momentum_abc")
+    # Exit at $105
+    trading._price = "105.00"
+    client.close_position("intraday_momentum_abc", "SPY", "take_profit")
+
+    assert log_path.exists()
+    import json
+    entries = [json.loads(line) for line in log_path.read_text().splitlines() if line.strip()]
+    assert len(entries) == 1
+    e = entries[0]
+    assert e["strategy_id"] == "intraday_momentum_abc"
+    assert e["agent_id"] == "agent-uuid-1234"
+    assert e["symbol"] == "SPY"
+    assert e["side"] == "long"
+    assert Decimal(e["realized_pnl"]) > Decimal("0")
+    assert e["exit_reason"] == "take_profit"
+    # Position should be cleared
+    assert client.get_open_positions("intraday_momentum_abc") == []
+
+
+def test_close_position_writes_log_even_without_matched_position(tmp_path):
+    log_path = tmp_path / "trade_log.jsonl"
+    trading = FakeTradingClientWithPrice("SPY", "100.00")
+    client = AlpacaOrderClient(
+        "k", "s", PAPER_URL, trading_client=trading,
+        trade_log_path=log_path,
+    )
+    client.close_position("intraday_momentum_abc", "SPY", "eod_flatten")
+    assert log_path.exists()

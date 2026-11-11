@@ -18,6 +18,7 @@ from evo_trader.horizon.config import HorizonConfig
 from evo_trader.horizon.constraints import filter_candidates
 from evo_trader.horizon.ledger import HorizonLedger
 from evo_trader.horizon.market_state import (
+    BarsProvider,
     Candidate,
     MarketState,
     build_candidates,
@@ -70,8 +71,12 @@ class HorizonAgent:
         cfg: HorizonConfig,
         symbol: str,
         tuning_log_path: Path | str,
+        bars_client: BarsProvider | None = None,
     ) -> None:
         self._client = client
+        # ``bars_client`` overrides ``client`` for market-data fetches only.
+        # ``client`` is still used for order submission via ``_submit_action``.
+        self._bars_client: BarsProvider = bars_client if bars_client is not None else client
         self._cfg = cfg
         self._symbol = symbol
         self._ledger = HorizonLedger(starting_capital=STARTING_CAPITAL)
@@ -102,13 +107,13 @@ class HorizonAgent:
 
         try:
             state = fetch_market_state(
-                self._client,
+                self._bars_client,
                 symbol=self._symbol,
                 lookback_bars=LOOKBACK_BARS,
                 has_open_position=self._position_direction is not None,
                 position_notional=self._position_notional,
             )
-        except AlpacaClientError:
+        except Exception:  # noqa: BLE001 — catches both AlpacaClientError and YFinanceBarsError
             # Data-fetch failure: never crash the loop, never submit a
             # stale/partial order. HOLD is always safe.
             return Candidate.HOLD

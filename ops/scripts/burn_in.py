@@ -32,13 +32,33 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from evo_trader.agents.base import AgentState, AgentType, TradingAgent
 from evo_trader.config.parameters import CapitalConfig
 from evo_trader.portfolio.manager import PortfolioManager
-from evo_trader.strategies.breakout import BreakoutStrategy
-from evo_trader.strategies.grid import GridStrategy
-from evo_trader.strategies.intraday_momentum import IntradayMomentumStrategy
-from evo_trader.strategies.mean_reversion import MeanReversionStrategy
+from evo_trader.tactical.population import (
+    STARTING_AGENTS,
+    init_population,
+    register_starting_strategies,
+)
+
+
+def _load_stable_ids(manifest_path: Path) -> dict[str, str] | None:
+    """Read per-agent stable IDs from an existing population manifest.
+
+    Returns a name→agent_id dict when the manifest exists and contains them,
+    or None on first run (manifest missing or pre-dates the agent_id field).
+    """
+    if not manifest_path.exists():
+        return None
+    try:
+        data = json.loads(manifest_path.read_text())
+        ids = {
+            a["name"]: a["agent_id"]
+            for a in data.get("agents", [])
+            if "agent_id" in a and "name" in a
+        }
+        return ids if ids else None
+    except (json.JSONDecodeError, KeyError):
+        return None
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,47 +69,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger("burn_in")
-
-
-# ---------------------------------------------------------------------------
-# Population definition — 4 starting agents, diverse by design
-# ---------------------------------------------------------------------------
-
-_STARTING_AGENTS = [
-    ("Momentum-Hunter",  AgentType.MOMENTUM),
-    ("Breakout",         AgentType.MOMENTUM),   # breakout treated as momentum family
-    ("Grid-Trader",      AgentType.GRID),
-    ("Mean-Reversion",   AgentType.MEAN_REVERSION),
-]
-
-
-# One strategy per starting agent, in the same order as _STARTING_AGENTS.
-_STRATEGY_FACTORIES = [
-    IntradayMomentumStrategy,
-    BreakoutStrategy,
-    GridStrategy,
-    MeanReversionStrategy,
-]
-
-
-def init_population(portfolio_manager: PortfolioManager, capital_cfg: CapitalConfig) -> list[TradingAgent]:
-    """Register the 4 starting agents with equal capital allocation."""
-    per_agent = capital_cfg.initial_agent_allocation
-    agents: list[TradingAgent] = []
-
-    for name, agent_type in _STARTING_AGENTS:
-        agent = TradingAgent(
-            agent_id=str(uuid.uuid4()),
-            agent_type=agent_type,
-            state=AgentState.ACTIVE,
-            allocated_capital=per_agent,
-            generation=0,
-        )
-        portfolio_manager.register_agent(agent, per_agent)
-        logger.info("Registered agent %s (%s) with $%s", name, agent_type.value, per_agent)
-        agents.append(agent)
-
-    return agents
 
 
 def run_tactical_cycle() -> dict:
@@ -125,9 +104,11 @@ def run_tactical_cycle() -> dict:
     )
 
     pm = PortfolioManager()
-    # Re-register starting agents so the runner's PM knows them
     capital_cfg = CapitalConfig()
-    agents = init_population(pm, capital_cfg)
+    # Reload stable IDs so strategy_id in decisions.jsonl is consistent across runs.
+    manifest_path = _REPO_ROOT / "state" / "population.json"
+    stable_ids = _load_stable_ids(manifest_path)
+    agents = init_population(pm, capital_cfg, stable_ids=stable_ids)
 
     posture_store = PostureStore()
     log_path = _REPO_ROOT / "state" / "decisions.jsonl"
@@ -141,8 +122,7 @@ def run_tactical_cycle() -> dict:
     )
 
     symbol = os.getenv("BURN_IN_SYMBOL", "SPY")
-    for agent, factory in zip(agents, _STRATEGY_FACTORIES):
-        runner.register_strategy(factory(symbol), agent.agent_id)
+    register_starting_strategies(runner, agents, symbol)
 
     runner.run_once()
     logger.info("Tactical cycle complete — decisions logged to %s", log_path)
@@ -209,12 +189,22 @@ def main() -> None:
     logger.info("--- Step 1: Initialising paper population ---")
     capital_cfg = CapitalConfig()
     pm = PortfolioManager()
-    agents = init_population(pm, capital_cfg)
-    logger.info("Population: %d agents, $%s active trading capital", len(agents), capital_cfg.active_trading_total)
 
-    # Persist population manifest
     manifest_path = _REPO_ROOT / "state" / "population.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Reload stable IDs if manifest already has them (subsequent runs preserve identity).
+    stable_ids = _load_stable_ids(manifest_path)
+    if stable_ids:
+        logger.info("Reloading stable agent IDs from %s", manifest_path)
+    else:
+        logger.info("First run — minting new stable agent IDs")
+
+    agents = init_population(pm, capital_cfg, stable_ids=stable_ids)
+    logger.info("Population: %d agents, $%s active trading capital", len(agents), capital_cfg.active_trading_total)
+
+    # Persist population manifest (includes agent_id so restarts reuse the same identity).
+    agent_by_name = {name: agent for agent, (name, _, _) in zip(agents, STARTING_AGENTS)}
     manifest = {
         "initialized_at": datetime.now(timezone.utc).isoformat(),
         "capital_config": {
@@ -225,10 +215,11 @@ def main() -> None:
         "agents": [
             {
                 "name": name,
+                "agent_id": agent_by_name[name].agent_id,
                 "agent_type": atype.value,
                 "allocated_capital": str(capital_cfg.initial_agent_allocation),
             }
-            for name, atype in _STARTING_AGENTS
+            for name, atype, _ in STARTING_AGENTS
         ],
     }
     manifest_path.write_text(json.dumps(manifest, indent=2))

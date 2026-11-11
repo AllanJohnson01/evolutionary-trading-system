@@ -95,6 +95,31 @@ class EvolutionConfig:
 
 
 # ---------------------------------------------------------------------------
+# Edge metrics configuration
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class EdgeMetricsConfig:
+    # Rolling window for all per-strategy metrics (trade count)
+    rolling_window_trades: int = 30
+
+    # Trend / decay detection: number of sub-windows to split evaluation period into
+    trend_window_count: int = 5          # slope computed over this many sub-windows
+
+    # Zero-edge detection: t-stat threshold below which edge ≈ 0
+    zero_edge_t_threshold: float = 1.645  # one-sided 95% confidence
+
+    # Number of consecutive evaluation periods with zero edge before flagging for elimination
+    zero_edge_consecutive_periods: int = 2
+
+    # Minimum trades required before any metric is considered valid
+    min_trades_for_metrics: int = 5
+
+    # Annualisation factor for daily Sharpe (252 trading days)
+    sharpe_annualise_factor: float = 252.0
+
+
+# ---------------------------------------------------------------------------
 # Market configuration
 # ---------------------------------------------------------------------------
 
@@ -153,4 +178,5 @@ SYSTEM_CONFIG: Final = {
     "sizing": SizingConfig(),
     "evolution": EvolutionConfig(),
     "markets": MarketConfig(),
+    "edge_metrics": EdgeMetricsConfig(),
 }

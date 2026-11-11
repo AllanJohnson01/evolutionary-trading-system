@@ -1,0 +1,103 @@
+{
+  "fetched_at": "2026-11-01T23:01:35.000883+00:00",
+  "events": [
+    {
+      "timestamp": "2026-11-02T10:00:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "ISM manufacturing PMI (October)",
+      "source": "simianx.ai calendar"
+    },
+    {
+      "timestamp": "2026-11-02T16:05:00-05:00",
+      "symbol_scope": [
+        "AAPL",
+        "PLTR"
+      ],
+      "impact_tier": 3,
+      "description": "Apple (call 17:00 ET) and Palantir Q3 earnings (after close)",
+      "source": "simianx.ai / tipranks.com / stocktitan.net wk Nov 2"
+    },
+    {
+      "timestamp": "2026-11-03T09:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "US midterm elections (markets open normally; headline/policy-risk day)",
+      "source": "simianx.ai calendar"
+    },
+    {
+      "timestamp": "2026-11-03T10:00:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "JOLTS job openings (September)",
+      "source": "simianx.ai / fedratecalc.com"
+    },
+    {
+      "timestamp": "2026-11-03T16:05:00-05:00",
+      "symbol_scope": [
+        "AMD"
+      ],
+      "impact_tier": 3,
+      "description": "AMD Q3 earnings (after close) - single-source date",
+      "source": "tipranks.com / earnings calendars wk Nov 2"
+    },
+    {
+      "timestamp": "2026-11-04T06:30:00-05:00",
+      "symbol_scope": [
+        "UBER"
+      ],
+      "impact_tier": 2,
+      "description": "Uber Q3 earnings (before open) - date per preview",
+      "source": "tipranks.com / stocktitan.net wk Nov 2"
+    },
+    {
+      "timestamp": "2026-11-04T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "Treasury quarterly refunding announcement",
+      "source": "simianx.ai calendar"
+    },
+    {
+      "timestamp": "2026-11-04T10:00:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "ISM services PMI (October)",
+      "source": "simianx.ai calendar"
+    },
+    {
+      "timestamp": "2026-11-05T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 1,
+      "description": "Weekly initial jobless claims",
+      "source": "simianx.ai calendar"
+    },
+    {
+      "timestamp": "2026-11-06T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "US Employment Situation (NFP), October data",
+      "source": "fedratecalc.com / simianx.ai / bls.gov schedule"
+    },
+    {
+      "timestamp": "2026-11-06T10:00:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 1,
+      "description": "University of Michigan consumer sentiment, preliminary (November)",
+      "source": "simianx.ai calendar"
+    },
+    {
+      "timestamp": "2026-11-10T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "US CPI, October data (look-ahead)",
+      "source": "fedratecalc.com / simianx.ai"
+    }
+  ],
+  "fetch_errors": [
+    "No FOMC decision this week (next Dec 9; Oct minutes Nov 18) - none omitted in error",
+    "No verified crypto catalysts (unlocks/upgrades/ETF deadlines) for Nov 2-8 2026; searches returned only 2025 items - check tokenomist.ai manually",
+    "Earnings dates/times from secondary calendars (tipranks, stocktitan, simianx); Apple/Palantir Mon Nov 2 and AMD Nov 3 not confirmed on IR pages; Disney, McDonald's dates unconfirmed",
+    "CPI/NFP dates cross-checked across 2 calendars, not verified directly vs BLS",
+    "Impact tiers use schema enum (1=LOW,2=MEDIUM,3=HIGH)"
+  ]
+}

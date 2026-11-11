@@ -68,6 +68,8 @@ class MockOrderClient:
         symbol: str,
         direction: str,
         notional: Decimal,
+        *,
+        strategy_id: Optional[str] = None,
     ) -> str:
         self.submitted_orders.append((symbol, direction, notional))
         return "test_order_id"

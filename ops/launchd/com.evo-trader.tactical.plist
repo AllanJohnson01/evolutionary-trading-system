@@ -61,10 +61,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>${HOME}/Library/Logs/evo-trader/tactical.log</string>
+    <string>/Users/USERNAME/Library/Logs/evo-trader/tactical.log</string>
 
     <key>StandardErrorPath</key>
-    <string>${HOME}/Library/Logs/evo-trader/tactical-error.log</string>
+    <string>/Users/USERNAME/Library/Logs/evo-trader/tactical-error.log</string>
 
 </dict>
 </plist>
