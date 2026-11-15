@@ -1,103 +1,127 @@
 {
-  "fetched_at": "2026-11-01T23:01:35.000883+00:00",
+  "fetched_at": "2026-11-15T23:11:21.763682+00:00",
   "events": [
     {
-      "timestamp": "2026-11-02T10:00:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 2,
-      "description": "ISM manufacturing PMI (October)",
-      "source": "simianx.ai calendar"
-    },
-    {
-      "timestamp": "2026-11-02T16:05:00-05:00",
+      "timestamp": "2026-11-16T07:30:00-05:00",
       "symbol_scope": [
-        "AAPL",
-        "PLTR"
+        "BIDU"
       ],
-      "impact_tier": 3,
-      "description": "Apple (call 17:00 ET) and Palantir Q3 earnings (after close)",
-      "source": "simianx.ai / tipranks.com / stocktitan.net wk Nov 2"
-    },
-    {
-      "timestamp": "2026-11-03T09:30:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 2,
-      "description": "US midterm elections (markets open normally; headline/policy-risk day)",
-      "source": "simianx.ai calendar"
-    },
-    {
-      "timestamp": "2026-11-03T10:00:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 2,
-      "description": "JOLTS job openings (September)",
-      "source": "simianx.ai / fedratecalc.com"
-    },
-    {
-      "timestamp": "2026-11-03T16:05:00-05:00",
-      "symbol_scope": [
-        "AMD"
-      ],
-      "impact_tier": 3,
-      "description": "AMD Q3 earnings (after close) - single-source date",
-      "source": "tipranks.com / earnings calendars wk Nov 2"
-    },
-    {
-      "timestamp": "2026-11-04T06:30:00-05:00",
-      "symbol_scope": [
-        "UBER"
-      ],
-      "impact_tier": 2,
-      "description": "Uber Q3 earnings (before open) - date per preview",
-      "source": "tipranks.com / stocktitan.net wk Nov 2"
-    },
-    {
-      "timestamp": "2026-11-04T08:30:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 2,
-      "description": "Treasury quarterly refunding announcement",
-      "source": "simianx.ai calendar"
-    },
-    {
-      "timestamp": "2026-11-04T10:00:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 2,
-      "description": "ISM services PMI (October)",
-      "source": "simianx.ai calendar"
-    },
-    {
-      "timestamp": "2026-11-05T08:30:00-05:00",
-      "symbol_scope": [],
       "impact_tier": 1,
-      "description": "Weekly initial jobless claims",
-      "source": "simianx.ai calendar"
+      "description": "Baidu Q3 earnings (before open)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
     },
     {
-      "timestamp": "2026-11-06T08:30:00-05:00",
+      "timestamp": "2026-11-16T12:00:00-05:00",
       "symbol_scope": [],
-      "impact_tier": 3,
-      "description": "US Employment Situation (NFP), October data",
-      "source": "fedratecalc.com / simianx.ai / bls.gov schedule"
+      "impact_tier": 2,
+      "description": "Fed speaker: Kevin Warsh (12:00 ET) - policy-signal risk",
+      "source": "sensei.news / bloomingbit.io"
     },
     {
-      "timestamp": "2026-11-06T10:00:00-05:00",
-      "symbol_scope": [],
+      "timestamp": "2026-11-17T00:00:00-05:00",
+      "symbol_scope": [
+        "ENJ",
+        "GRT",
+        "CPOOL"
+      ],
       "impact_tier": 1,
-      "description": "University of Michigan consumer sentiment, preliminary (November)",
-      "source": "simianx.ai calendar"
+      "description": "Crypto: ENJ Matrixchain upgrade (Nov 16), CPOOL 1:1 token migration and GRT staking-based expansion (Nov 17); exact times not published",
+      "source": "bloomingbit.io"
     },
     {
-      "timestamp": "2026-11-10T08:30:00-05:00",
+      "timestamp": "2026-11-17T08:30:00-05:00",
       "symbol_scope": [],
       "impact_tier": 3,
-      "description": "US CPI, October data (look-ahead)",
-      "source": "fedratecalc.com / simianx.ai"
+      "description": "US retail sales and control group (October)",
+      "source": "sensei.news / litefinance.org"
+    },
+    {
+      "timestamp": "2026-11-17T08:30:00-05:00",
+      "symbol_scope": [
+        "DIS"
+      ],
+      "impact_tier": 2,
+      "description": "Disney Q4 earnings (before open)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-17T09:00:00-05:00",
+      "symbol_scope": [
+        "HD"
+      ],
+      "impact_tier": 2,
+      "description": "Home Depot Q3 earnings (before open, timing per Nasdaq)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-17T16:20:00-05:00",
+      "symbol_scope": [
+        "NVDA"
+      ],
+      "impact_tier": 3,
+      "description": "Nvidia Q3 earnings (after close; call 17:00 ET) - market-wide AI bellwether",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-18T08:00:00-05:00",
+      "symbol_scope": [
+        "TGT"
+      ],
+      "impact_tier": 2,
+      "description": "Target Q3 earnings (before open, timing per Nasdaq)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-18T09:00:00-05:00",
+      "symbol_scope": [
+        "LOW",
+        "TJX"
+      ],
+      "impact_tier": 2,
+      "description": "Lowe's (call 09:00) and TJX (call 11:00) earnings (before open, timing per Nasdaq)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-18T14:00:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "FOMC minutes (Oct 27-28 meeting; held 3.75-4.00%, 10-2 vote with two hawkish dissents)",
+      "source": "tradingkey.com / litefinance.org / bloomingbit.io"
+    },
+    {
+      "timestamp": "2026-11-18T16:05:00-05:00",
+      "symbol_scope": [
+        "PANW"
+      ],
+      "impact_tier": 2,
+      "description": "Palo Alto Networks earnings (after close)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-19T07:00:00-05:00",
+      "symbol_scope": [
+        "WMT"
+      ],
+      "impact_tier": 3,
+      "description": "Walmart Q3 earnings (before open, call 08:00 ET) - consumer read-through",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+    },
+    {
+      "timestamp": "2026-11-19T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "US initial jobless claims; Philadelphia Fed manufacturing index (November)",
+      "source": "bloomingbit.io"
+    },
+    {
+      "timestamp": "2026-11-19T16:05:00-05:00",
+      "symbol_scope": [
+        "INTU",
+        "ROST"
+      ],
+      "impact_tier": 2,
+      "description": "Intuit (call 16:30) and Ross Stores (call 16:15) earnings (after close)",
+      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
     }
-  ],
-  "fetch_errors": [
-    "No FOMC decision this week (next Dec 9; Oct minutes Nov 18) - none omitted in error",
-    "No verified crypto catalysts (unlocks/upgrades/ETF deadlines) for Nov 2-8 2026; searches returned only 2025 items - check tokenomist.ai manually",
-    "Earnings dates/times from secondary calendars (tipranks, stocktitan, simianx); Apple/Palantir Mon Nov 2 and AMD Nov 3 not confirmed on IR pages; Disney, McDonald's dates unconfirmed",
-    "CPI/NFP dates cross-checked across 2 calendars, not verified directly vs BLS",
-    "Impact tiers use schema enum (1=LOW,2=MEDIUM,3=HIGH)"
   ]
 }
