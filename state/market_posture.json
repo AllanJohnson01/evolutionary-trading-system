@@ -1,8 +1,8 @@
 {
-  "as_of": "2026-11-12T18:50:00+00:00",
+  "as_of": "2026-11-15T17:45:00+00:00",
   "regime": "neutral",
   "risk_dial": "0.5",
   "blackout_windows": [],
-  "notes": "DATA-LIMITED posture (Thu Nov 12, ~13:50 ET). Alpaca MCP still returns 401 and web search returned no dated coverage of today's session, futures, overnight crypto action or headlines, so no verified price action or sentiment. Regime held neutral and risk_dial 0.5 (fail-cautious). Calendar: PCE Fri Nov 13 and GDP Nov 24 are date-only from FRED with no verified release time, so no blackout is set; FRED 'FOMC Minutes' daily entries are release-date artifacts and ignored. No timed tier-1 event in the next 24h. Re-issue once Alpaca credentials are restored.",
-  "valid_until": "2026-11-13T18:50:00+00:00"
+  "notes": "DATA-LIMITED posture (Sun Nov 15). Alpaca MCP still returns 401 on crypto/stock snapshots and news; web search returned only 2025 coverage, so no verified weekend price action or headlines. Regime held neutral, risk_dial 0.5 (fail-cautious). Calendar: FRED 'FOMC Minutes' entries on consecutive days (Nov 16-27) are release-date artifacts from the fetcher and are ignored; GDP Nov 24 is date-only with no verified release time, so no blackout is set. No timed tier-1 event verified in the next 24h. Re-issue once Alpaca credentials are restored.",
+  "valid_until": "2026-11-16T17:45:00+00:00"
 }
