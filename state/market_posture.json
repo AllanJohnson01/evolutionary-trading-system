@@ -1,8 +1,24 @@
 {
-  "as_of": "2026-11-15T17:45:00+00:00",
-  "regime": "neutral",
-  "risk_dial": "0.5",
-  "blackout_windows": [],
-  "notes": "DATA-LIMITED posture (Sun Nov 15). Alpaca MCP still returns 401 on crypto/stock snapshots and news; web search returned only 2025 coverage, so no verified weekend price action or headlines. Regime held neutral, risk_dial 0.5 (fail-cautious). Calendar: FRED 'FOMC Minutes' entries on consecutive days (Nov 16-27) are release-date artifacts from the fetcher and are ignored; GDP Nov 24 is date-only with no verified release time, so no blackout is set. No timed tier-1 event verified in the next 24h. Re-issue once Alpaca credentials are restored.",
-  "valid_until": "2026-11-16T17:45:00+00:00"
+  "as_of": "2026-11-17T17:30:00+00:00",
+  "regime": "risk_off",
+  "risk_dial": "0.3",
+  "blackout_windows": [
+    {
+      "start": "2026-11-17T20:50:00+00:00",
+      "end": "2026-11-17T21:50:00+00:00",
+      "reason": "Nvidia Q3 earnings after close (16:20 ET), tier-1 AI bellwether"
+    },
+    {
+      "start": "2026-11-18T18:30:00+00:00",
+      "end": "2026-11-18T19:30:00+00:00",
+      "reason": "FOMC minutes (14:00 ET)"
+    },
+    {
+      "start": "2026-11-19T11:30:00+00:00",
+      "end": "2026-11-19T12:30:00+00:00",
+      "reason": "Walmart Q3 earnings (07:00 ET), tier-1 consumer read-through"
+    }
+  ],
+  "notes": "RISK-OFF (Tue Nov 17, midday). Monday cash session sold off hard (S&P 500 -1.92%, Nasdaq -2.49%, Dow -1.41%) and futures were mixed-to-lower premarket; Home Depot and Disney missed and pressured the Dow. Crypto is in a drawdown: BTC hit a 3-month low near $65K (~-20% in November) with Fear & Greed at 13 (extreme fear) on Nov 14. Rates/dollar are a headwind (one outlet cites 10y near 5.10% and DXY near April-2025 highs - single source, unverified). Nvidia reports after the close today, after a ~28% one-month drop, and FOMC minutes (Oct meeting, two hawkish dissents) land Wed 14:00 ET, so event risk is concentrated. risk_dial cut to 0.3 (from 0.5) to reduce size into fragile tape; not 0 because no tier-1 shock is confirmed. Data caveat: Alpaca MCP still returns 401 on snapshots and news, so price action comes from web press reports (TipRanks, Schaeffer's, CryptoTicker, Cointelegraph), not a direct feed. Calendar fetcher FRED 'FOMC Minutes' daily entries are release-date artifacts and are ignored; blackouts use the verified times from the weekly calendar (state/event_calendar.json). Retail sales (08:30 ET) already passed.",
+  "valid_until": "2026-11-18T17:30:00+00:00"
 }
