@@ -1,17 +1,12 @@
 {
-  "as_of": "2026-11-17T17:30:00+00:00",
+  "as_of": "2026-11-18T17:30:00+00:00",
   "regime": "risk_off",
   "risk_dial": "0.3",
   "blackout_windows": [
     {
-      "start": "2026-11-17T20:50:00+00:00",
-      "end": "2026-11-17T21:50:00+00:00",
-      "reason": "Nvidia Q3 earnings after close (16:20 ET), tier-1 AI bellwether"
-    },
-    {
       "start": "2026-11-18T18:30:00+00:00",
       "end": "2026-11-18T19:30:00+00:00",
-      "reason": "FOMC minutes (14:00 ET)"
+      "reason": "FOMC minutes (14:00 ET), Oct meeting with two hawkish dissents; December hike now being priced"
     },
     {
       "start": "2026-11-19T11:30:00+00:00",
@@ -19,6 +14,6 @@
       "reason": "Walmart Q3 earnings (07:00 ET), tier-1 consumer read-through"
     }
   ],
-  "notes": "RISK-OFF (Tue Nov 17, midday). Monday cash session sold off hard (S&P 500 -1.92%, Nasdaq -2.49%, Dow -1.41%) and futures were mixed-to-lower premarket; Home Depot and Disney missed and pressured the Dow. Crypto is in a drawdown: BTC hit a 3-month low near $65K (~-20% in November) with Fear & Greed at 13 (extreme fear) on Nov 14. Rates/dollar are a headwind (one outlet cites 10y near 5.10% and DXY near April-2025 highs - single source, unverified). Nvidia reports after the close today, after a ~28% one-month drop, and FOMC minutes (Oct meeting, two hawkish dissents) land Wed 14:00 ET, so event risk is concentrated. risk_dial cut to 0.3 (from 0.5) to reduce size into fragile tape; not 0 because no tier-1 shock is confirmed. Data caveat: Alpaca MCP still returns 401 on snapshots and news, so price action comes from web press reports (TipRanks, Schaeffer's, CryptoTicker, Cointelegraph), not a direct feed. Calendar fetcher FRED 'FOMC Minutes' daily entries are release-date artifacts and are ignored; blackouts use the verified times from the weekly calendar (state/event_calendar.json). Retail sales (08:30 ET) already passed.",
-  "valid_until": "2026-11-18T17:30:00+00:00"
+  "notes": "RISK-OFF held (Wed Nov 18, midday). Tuesday cash close extended the slide: S&P 500 -1.03% to ~7,341 (fourth straight loss, five-month low), Dow -1.6%, all 11 sectors red with software leading (CRM, INTU, NOW), breadth 75 up / 426 down. Nvidia beat after the close (Q3 FY27 revenue $115.8B, +103% y/y; Q4 guide $130B; +$150B buyback) and rose roughly 2-4% after hours, lifting futures this morning (Nasdaq-100 ~+1.2%, S&P ~+0.6-0.7%, Dow ~flat), but the bounce is single-catalyst and comes with NVDA governance overhang (interim CEO, SEC probe reported). Macro backdrop is still hostile: markets are pricing a meaningful chance of a 25bp Fed HIKE in December, a cross-asset risk-off move hit equities, gold (reported below $3,800) and crypto, and BTC sits near $64K (~-25% in a month) with Fear & Greed at 11, sixth straight day of extreme fear. risk_dial held at 0.3 (not raised on one premarket bounce ahead of FOMC minutes; not cut because the NVDA beat removed one tail risk). Revisit tomorrow: upgrade toward neutral/0.5 only if the cash session holds the NVDA bounce and the minutes do not harden hike expectations. Data caveat: Alpaca MCP still returns 401 on snapshots and news, so price action comes from web press reports (Yahoo Finance, StockTitan, FXStreet, CryptoTicker, TokenPost), not a direct feed. Calendar fetcher again returned only FRED 'FOMC Minutes' release-date artifacts; blackouts use verified times from state/event_calendar.json. NVDA blackout (Nov 17) has expired; tier-2 events (Palo Alto after close today, jobless claims/Philly Fed 08:30 ET Thu) are not blacked out.",
+  "valid_until": "2026-11-19T17:30:00+00:00"
 }
