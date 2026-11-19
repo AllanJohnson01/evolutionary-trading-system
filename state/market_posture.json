@@ -1,19 +1,8 @@
 {
-  "as_of": "2026-11-18T17:30:00+00:00",
+  "as_of": "2026-11-19T17:30:00+00:00",
   "regime": "risk_off",
-  "risk_dial": "0.3",
-  "blackout_windows": [
-    {
-      "start": "2026-11-18T18:30:00+00:00",
-      "end": "2026-11-18T19:30:00+00:00",
-      "reason": "FOMC minutes (14:00 ET), Oct meeting with two hawkish dissents; December hike now being priced"
-    },
-    {
-      "start": "2026-11-19T11:30:00+00:00",
-      "end": "2026-11-19T12:30:00+00:00",
-      "reason": "Walmart Q3 earnings (07:00 ET), tier-1 consumer read-through"
-    }
-  ],
-  "notes": "RISK-OFF held (Wed Nov 18, midday). Tuesday cash close extended the slide: S&P 500 -1.03% to ~7,341 (fourth straight loss, five-month low), Dow -1.6%, all 11 sectors red with software leading (CRM, INTU, NOW), breadth 75 up / 426 down. Nvidia beat after the close (Q3 FY27 revenue $115.8B, +103% y/y; Q4 guide $130B; +$150B buyback) and rose roughly 2-4% after hours, lifting futures this morning (Nasdaq-100 ~+1.2%, S&P ~+0.6-0.7%, Dow ~flat), but the bounce is single-catalyst and comes with NVDA governance overhang (interim CEO, SEC probe reported). Macro backdrop is still hostile: markets are pricing a meaningful chance of a 25bp Fed HIKE in December, a cross-asset risk-off move hit equities, gold (reported below $3,800) and crypto, and BTC sits near $64K (~-25% in a month) with Fear & Greed at 11, sixth straight day of extreme fear. risk_dial held at 0.3 (not raised on one premarket bounce ahead of FOMC minutes; not cut because the NVDA beat removed one tail risk). Revisit tomorrow: upgrade toward neutral/0.5 only if the cash session holds the NVDA bounce and the minutes do not harden hike expectations. Data caveat: Alpaca MCP still returns 401 on snapshots and news, so price action comes from web press reports (Yahoo Finance, StockTitan, FXStreet, CryptoTicker, TokenPost), not a direct feed. Calendar fetcher again returned only FRED 'FOMC Minutes' release-date artifacts; blackouts use verified times from state/event_calendar.json. NVDA blackout (Nov 17) has expired; tier-2 events (Palo Alto after close today, jobless claims/Philly Fed 08:30 ET Thu) are not blacked out.",
-  "valid_until": "2026-11-19T17:30:00+00:00"
+  "risk_dial": "0.2",
+  "blackout_windows": [],
+  "notes": "RISK-OFF held, risk_dial CUT 0.3 -> 0.2 (Thu Nov 19, midday). Yesterday's upgrade conditions both failed. (1) FOMC minutes (Oct 27-28 meeting, released Wed) were more hawkish than the vote: almost all officials see further hikes as likely, a couple raised a move larger than 25bp; CME FedWatch now prices ~90-95% odds of a 25bp December HIKE with ~5-10% for 50bp; dollar index at a 19-month high (~103.9). (2) The NVDA bounce did not hold: Wednesday cash close S&P 500 -0.23% to 7,323.63 (fifth straight loss, longest streak since June, and below its 200-day moving average), Dow -1.11% to 50,198, Nasdaq +0.42%; NVDA reversed its post-earnings pop for a fifth straight loss. Today: futures opened sharply higher on the Anthropic IPO (Nasdaq-100 futures ~+2%), then the cash session reversed; live-blog snapshots show the Dow down ~1,000 pts (~-2%) and S&P/Nasdaq ~-1.5% intraday (not a confirmed close). Data was weak: Philly Fed fell to 6.3 vs ~20-23 expected (lowest since May); initial claims 203K vs 197K expected. Walmart beat Q3 and raised its FY27 sales guide but traded down premarket. Crypto: BTC ~$63-64K (-12% w/w, ~49% below the Oct ATH), Fear & Greed 10, seventh straight day of extreme fear, ~$306M spot-ETF outflows. Why cut and not hold: a failed gap-up rally is a distribution signal, the policy path is now hikes into a slowing manufacturing print, and the S&P has lost its 200-DMA. Why not lower: the Nasdaq is holding up relative to the Dow, and the hike is already mostly priced. No blackout windows: Walmart (tier-3) has passed; INTU/ROST after close today and Friday Nov 20 monthly opex are tier-2. The event calendar has no verified tier-3 events after Nov 19; the weekly calendar refresh is due. Revisit tomorrow: restore 0.3 only if the S&P closes back above its 200-DMA; cut further toward 0.1 if today closes near the lows and BTC loses $62K. Data caveat: Alpaca MCP still returns 401 on snapshots and news, so price action comes from press reports (Yahoo Finance, Motley Fool, StockTitan, 24/7 Wall St, Invezz, TokenPost, FXStreet), not a direct feed. The calendar fetcher again returned only FRED 'FOMC Minutes' release-date artifacts.",
+  "valid_until": "2026-11-20T17:30:00+00:00"
 }
