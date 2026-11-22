@@ -1,127 +1,112 @@
 {
-  "fetched_at": "2026-11-15T23:11:21.763682+00:00",
+  "fetched_at": "2026-11-22T23:02:08+00:00",
   "events": [
     {
-      "timestamp": "2026-11-16T07:30:00-05:00",
+      "timestamp": "2026-11-23T16:05:00-05:00",
       "symbol_scope": [
-        "BIDU"
+        "HPE",
+        "A",
+        "ZM"
+      ],
+      "impact_tier": 2,
+      "description": "Earnings after close: HPE (call 17:00), Agilent (16:30), Zoom (call 17:00). AI-infra read-through for HPE.",
+      "source": "stocktitan.net wk Nov 23 / earningswhispers.com / investrade.com"
+    },
+    {
+      "timestamp": "2026-11-24T00:00:00+00:00",
+      "symbol_scope": [
+        "MON"
+      ],
+      "impact_tier": 2,
+      "description": "Crypto: Monad (MON) unlock ~$218M, largest of week (~$346M across 16 tokens Nov 23-29). Date CONFLICT: Nov 24 vs Nov 25 (DefiLlama); exact time not published. Treat Nov 24-25 as window.",
+      "source": "beincrypto.com / kucoin.com / bitcoinsistemi.com / datawallet.com (DefiLlama)"
+    },
+    {
+      "timestamp": "2026-11-24T07:00:00-05:00",
+      "symbol_scope": [
+        "ADI",
+        "MDT",
+        "BBY",
+        "DKS",
+        "ANF",
+        "DLTR",
+        "BURL",
+        "BILI"
+      ],
+      "impact_tier": 2,
+      "description": "Earnings before open: Analog Devices (07:00, semis), Medtronic (06:45-07:30), Best Buy, Dick's, Abercrombie, Dollar Tree, Burlington, Bilibili. Consumer/holiday-season read-through.",
+      "source": "stocktitan.net wk Nov 23 / earningswhispers.com / investrade.com"
+    },
+    {
+      "timestamp": "2026-11-24T16:05:00-05:00",
+      "symbol_scope": [
+        "DELL",
+        "HPQ",
+        "ADSK",
+        "WDAY"
+      ],
+      "impact_tier": 3,
+      "description": "Earnings after close: Dell (call 16:30), HP Inc (17:00), Autodesk (call 17:00), Workday (16:30). Dell AI-server guidance is a semis/AI-trade catalyst in a fragile tape.",
+      "source": "stocktitan.net wk Nov 23 / earningswhispers.com / investrade.com"
+    },
+    {
+      "timestamp": "2026-11-25T00:00:00+00:00",
+      "symbol_scope": [
+        "IRYS"
       ],
       "impact_tier": 1,
-      "description": "Baidu Q3 earnings (before open)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+      "description": "Crypto: Irys unlock ~$24M (time not published).",
+      "source": "beincrypto.com / kucoin.com / bitcoinsistemi.com / datawallet.com (DefiLlama)"
     },
     {
-      "timestamp": "2026-11-16T12:00:00-05:00",
+      "timestamp": "2026-11-25T06:30:00-05:00",
+      "symbol_scope": [
+        "DE",
+        "LI"
+      ],
+      "impact_tier": 2,
+      "description": "Earnings before open: Deere (call 10:00), Li Auto (07:00).",
+      "source": "stocktitan.net wk Nov 23 / earningswhispers.com / investrade.com"
+    },
+    {
+      "timestamp": "2026-11-25T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 3,
+      "description": "US data cluster (moved up for Thanksgiving): Oct PCE/core PCE (exp core +0.27% m/m, 3.2% y/y), Oct personal income/outlays, Q3 GDP 2nd estimate, Oct durable goods, initial/continuing jobless claims (one source lists claims Fri). December hike ~97% priced; hot core PCE risks 50bp talk.",
+      "source": "newsquawk.com / kiplinger.com / financialjuice.com / stocktitan.net"
+    },
+    {
+      "timestamp": "2026-11-25T14:00:00-05:00",
       "symbol_scope": [],
       "impact_tier": 2,
-      "description": "Fed speaker: Kevin Warsh (12:00 ET) - policy-signal risk",
-      "source": "sensei.news / bloomingbit.io"
+      "description": "Fed Beige Book (pre-Dec 8-9 FOMC).",
+      "source": "newsquawk.com / kiplinger.com / financialjuice.com / stocktitan.net"
     },
     {
-      "timestamp": "2026-11-17T00:00:00-05:00",
+      "timestamp": "2026-11-26T00:00:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 2,
+      "description": "Thanksgiving: NYSE/Nasdaq closed; crypto trades 24/7 on thin liquidity (gap risk into Fri). Crypto: Plasma (XPL) cliff unlock ~$10M and Huma Finance unlock (~26% of mcap) on Nov 26.",
+      "source": "beincrypto.com / kucoin.com / bitcoinsistemi.com / datawallet.com (DefiLlama) / investrade.com"
+    },
+    {
+      "timestamp": "2026-11-27T08:30:00-05:00",
+      "symbol_scope": [],
+      "impact_tier": 1,
+      "description": "Oct advance economic indicators (trade, retail/wholesale inventories). Half-day: stocks close 13:00 ET, bonds 14:00 ET. Black Friday retail sentiment.",
+      "source": "newsquawk.com / kiplinger.com / financialjuice.com / stocktitan.net / investrade.com"
+    },
+    {
+      "timestamp": "2026-11-28T22:21:00+00:00",
       "symbol_scope": [
-        "ENJ",
-        "GRT",
-        "CPOOL"
+        "FF"
       ],
       "impact_tier": 1,
-      "description": "Crypto: ENJ Matrixchain upgrade (Nov 16), CPOOL 1:1 token migration and GRT staking-based expansion (Nov 17); exact times not published",
-      "source": "bloomingbit.io"
-    },
-    {
-      "timestamp": "2026-11-17T08:30:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 3,
-      "description": "US retail sales and control group (October)",
-      "source": "sensei.news / litefinance.org"
-    },
-    {
-      "timestamp": "2026-11-17T08:30:00-05:00",
-      "symbol_scope": [
-        "DIS"
-      ],
-      "impact_tier": 2,
-      "description": "Disney Q4 earnings (before open)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-17T09:00:00-05:00",
-      "symbol_scope": [
-        "HD"
-      ],
-      "impact_tier": 2,
-      "description": "Home Depot Q3 earnings (before open, timing per Nasdaq)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-17T16:20:00-05:00",
-      "symbol_scope": [
-        "NVDA"
-      ],
-      "impact_tier": 3,
-      "description": "Nvidia Q3 earnings (after close; call 17:00 ET) - market-wide AI bellwether",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-18T08:00:00-05:00",
-      "symbol_scope": [
-        "TGT"
-      ],
-      "impact_tier": 2,
-      "description": "Target Q3 earnings (before open, timing per Nasdaq)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-18T09:00:00-05:00",
-      "symbol_scope": [
-        "LOW",
-        "TJX"
-      ],
-      "impact_tier": 2,
-      "description": "Lowe's (call 09:00) and TJX (call 11:00) earnings (before open, timing per Nasdaq)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-18T14:00:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 3,
-      "description": "FOMC minutes (Oct 27-28 meeting; held 3.75-4.00%, 10-2 vote with two hawkish dissents)",
-      "source": "tradingkey.com / litefinance.org / bloomingbit.io"
-    },
-    {
-      "timestamp": "2026-11-18T16:05:00-05:00",
-      "symbol_scope": [
-        "PANW"
-      ],
-      "impact_tier": 2,
-      "description": "Palo Alto Networks earnings (after close)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-19T07:00:00-05:00",
-      "symbol_scope": [
-        "WMT"
-      ],
-      "impact_tier": 3,
-      "description": "Walmart Q3 earnings (before open, call 08:00 ET) - consumer read-through",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
-    },
-    {
-      "timestamp": "2026-11-19T08:30:00-05:00",
-      "symbol_scope": [],
-      "impact_tier": 2,
-      "description": "US initial jobless claims; Philadelphia Fed manufacturing index (November)",
-      "source": "bloomingbit.io"
-    },
-    {
-      "timestamp": "2026-11-19T16:05:00-05:00",
-      "symbol_scope": [
-        "INTU",
-        "ROST"
-      ],
-      "impact_tier": 2,
-      "description": "Intuit (call 16:30) and Ross Stores (call 16:15) earnings (after close)",
-      "source": "stocktitan.net wk Nov 16 / tradingkey.com / sensei.news"
+      "description": "Crypto: Falcon Finance (FF) unlock ~75M tokens (~$6.5M); one source says Nov 29.",
+      "source": "beincrypto.com / kucoin.com / bitcoinsistemi.com / datawallet.com (DefiLlama)"
     }
+  ],
+  "fetch_errors": [
+    "Programmatic fetcher not used: FMP_API_KEY unset; FRED feed emits spurious FOMC Minutes dates. Events assembled manually from press calendars."
   ]
 }
