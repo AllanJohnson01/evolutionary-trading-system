@@ -1,8 +1,29 @@
 {
-  "as_of": "2026-11-27T17:40:00+00:00",
+  "as_of": "2026-11-28T17:45:00+00:00",
   "regime": "risk_off",
   "risk_dial": "0.10",
-  "blackout_windows": [],
-  "notes": "RISK-OFF held; risk_dial RESTORED from 0.05 to 0.10 (Black Friday, Fri Nov 27, about 12:40 ET, 20 min before the 13:00 ET early equity close). Restore-to-0.1 test from the Nov 26 posture PASSES on available data: S&P 500 traded about 7,230-7,260 intraday (+0.7% to +1.1%, well above 7,100); VIX about 25.6 (-4.6%, below 28); BTC was about $61.7K-$61.8K at 05:55 UTC Nov 27 with a 24h range of about $59.9K-$61.8K, so the Nov 26 UTC close is very likely above $60K (third straight up day, near $62K by midday). Caveat: S&P and VIX figures are intraday, not the official close; if the S&P cash close is below 7,100 or VIX closes above 28, the next run reverts to 0.05. Monthly Deribit options expiry settled at $61,600. Context: November was the worst month in a while (through Wed Nasdaq -7.3%, S&P -5.2%, Dow -3.1%); today's rally is holiday-thin, partly short covering, not a confirmed bottom. Crypto Fear & Greed is 12 (extreme fear). Rates risk (hot core PCE, ~98% December hike odds, new tariffs) is unchanged. Regime stays risk_off. Rules at 0.10: momentum and crypto may open only small starter longs with hard stops; no new semis/AI longs. Mean-reversion keeps tail-buffered stops. Grid-Trader stays paused on equities; crypto grids stay paused until BTC holds above $60K for two UTC closes. DCA-Accumulator may resume one minimum-size BTC/ETH tranche. GO TO 0.0 if BTC closes a UTC day below $57.8K, the S&P cash close is below 6,850, VIX closes above 35, or a U.S. strike on Iran / Hormuz closure is announced. Next step up to 0.25 needs S&P close above 7,300 AND VIX close below 22 AND a positive spot BTC ETF flow day. Calendar: no tier-1 events inside this posture window (weekend), so no blackouts. Next week: ISM Manufacturing Mon Dec 1 10:00 ET; the BLS schedule lists the November jobs report for Tue Dec 8 08:30 ET, not Dec 4 as the FRED-based calendar says; CPI Dec 10. The next run must add blackouts for these. Data caveats: Alpaca MCP still returns 401 on stock and crypto data, so prices come from press and aggregator reports (Yahoo, StockTitan, 24/7 Wall St, TradingNews, Cryptotimes, OKX, CoinGlass, Cryptoticker, FXStreet). Spot BTC ETF flows for Wed/Fri not found. The harness price_action_summary is still a TODO stub; the calendar fetcher still emits bogus daily FRED 'FOMC Minutes' entries and skips earnings (FMP_API_KEY not set).",
-  "valid_until": "2026-11-28T17:40:00+00:00"
+  "blackout_windows": [
+    {
+      "start": "2026-12-01T14:30:00+00:00",
+      "end": "2026-12-01T15:30:00+00:00",
+      "reason": "ISM Manufacturing PMI (Mon Dec 1 10:00 ET), tier 1"
+    },
+    {
+      "start": "2026-12-04T13:00:00+00:00",
+      "end": "2026-12-04T14:00:00+00:00",
+      "reason": "November jobs report as listed in the FRED calendar (Fri Dec 4 08:30 ET), tier 1. Kept as a precaution because the BLS schedule says Dec 8"
+    },
+    {
+      "start": "2026-12-08T13:00:00+00:00",
+      "end": "2026-12-08T14:00:00+00:00",
+      "reason": "November jobs report per the BLS schedule (Tue Dec 8 08:30 ET), tier 1"
+    },
+    {
+      "start": "2026-12-10T13:00:00+00:00",
+      "end": "2026-12-10T14:00:00+00:00",
+      "reason": "CPI (Thu Dec 10 08:30 ET), tier 1"
+    }
+  ],
+  "notes": "RISK-OFF held; risk_dial HELD at 0.10 (Sat Nov 28 weekend run). Confirmed Black Friday closes: S&P 500 7,297.49 (+1.6%, about +5.6% on the week), Nasdaq 24,129.50 (+2.3%), Dow 50,774.94 (+1.2%). AI and chip stocks led and all 11 sectors rose. VIX closed 23.81 (-11.2%, -34% on the week). The 0.10 hold test from the Nov 27 posture PASSES: the S&P close is above 7,100 and the VIX close is below 28. The step-up to 0.25 FAILS: the S&P close missed 7,300 by about 2.5 points, the VIX close is not below 22, and no positive spot BTC ETF flow day was confirmed (November outflows about $5.8B). Crypto has diverged from equities. BTC closed the Nov 27 UTC day just below $60K and is fading on Saturday at about $59.1K-$59.8K (-3% in 24h, -26% over the month). Support is about $56.8K, then the Nov 21 low of $55.5K. Resistance is about $64.9K. The equity rally came in a thin half-day session after a bad November, so it is not a confirmed bottom. Rates risk (hot core PCE, high December hike odds, tariffs) is unchanged. Rules at 0.10: equity momentum may hold or open only small starter longs with hard stops; no new semis/AI longs on the holiday-session rebound. NO new crypto starter longs until BTC closes a UTC day back above $60K. Mean-reversion keeps tail-buffered stops. Grid-Trader stays paused on equities. Crypto grids stay paused; the count of BTC UTC closes above $60K resets to zero. DCA-Accumulator: no new tranche this weekend; the Nov 27 tranche stands. GO TO 0.0 if BTC closes a UTC day below $57.8K, the S&P cash close is below 6,850, VIX closes above 35, or a U.S. strike on Iran / Hormuz closure is announced. Step up to 0.25 needs an S&P close above 7,300 AND a VIX close below 22 AND a positive spot BTC ETF flow day. Calendar: no tier-1 events inside this posture window (weekend). Forward blackouts are pre-loaded for ISM Dec 1, the jobs report (both Dec 4 and Dec 8 because the FRED and BLS dates conflict), and CPI Dec 10. They are pre-loaded because a stale posture degrades to risk_dial 0.5, which is above the current 0.10. The Sunday run must refresh before valid_until. Data caveats: Alpaca MCP still returns 401 on stock and crypto data, so prices come from press reports (AP/WRAL, Yahoo Finance, Swingfolio, Investing.com, The Glass Desk, CoinDesk, crypto.news, Traders Union). No Fear & Greed reading was found today (12 on Nov 27). The harness price_action_summary is still a TODO stub. The calendar fetcher still emits bogus daily FRED 'FOMC Minutes' entries and skips earnings (FMP_API_KEY not set).",
+  "valid_until": "2026-11-29T17:45:00+00:00"
 }
